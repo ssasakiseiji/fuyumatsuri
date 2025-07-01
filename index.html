@@ -252,19 +252,24 @@
             el.textContent = stand.displayId || stand.id;
             
             if (!isPositionEditMode) {
-                el.onclick = () => {
+                let wasLongPress = false;
+                el.addEventListener('click', (e) => {
+                    if (wasLongPress) {
+                        e.preventDefault();
+                        return;
+                    }
                     const standIndex = sortedStands.findIndex(s => s.id === stand.id);
                     (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
-                };
+                });
+
                 if (stand.status === 'occupied' && stand.mainProduct) {
                     const tooltip = document.createElement('div');
                     tooltip.className = 'stand-tooltip';
                     tooltip.textContent = stand.mainProduct;
                     el.appendChild(tooltip);
 
-                    // --- LÓGICA DE LONG PRESS PARA MÓVILES ---
-                    let wasLongPress = false;
-                    el.addEventListener('touchstart', (e) => {
+                    el.addEventListener('contextmenu', e => e.preventDefault());
+                    el.addEventListener('touchstart', () => {
                         wasLongPress = false;
                         longPressTimer = setTimeout(() => {
                             wasLongPress = true;
@@ -273,10 +278,7 @@
                     });
                     el.addEventListener('touchend', () => {
                         clearTimeout(longPressTimer);
-                        setTimeout(() => el.classList.remove('show-tooltip'), 200); // Hide tooltip after a moment
-                        if (wasLongPress) {
-                            e.preventDefault(); // Prevent click from firing after long press
-                        }
+                        setTimeout(() => el.classList.remove('show-tooltip'), 200);
                     });
                     el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
                 }
@@ -307,6 +309,7 @@
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             };
+
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'handle resize-handle';
             element.appendChild(resizeHandle);
@@ -329,6 +332,7 @@
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             };
+            
             const rotateHandle = document.createElement('div');
             rotateHandle.className = 'handle rotate-handle';
             element.appendChild(rotateHandle);
@@ -364,12 +368,13 @@
             
             const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
+            
+            const infoSection = `<div class="min-h-[100px]"><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>`;
 
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`<div><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryContent}`}`;
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
             
-            // --- LÓGICA DE NAVEGACIÓN EN BUCLE ---
             modalPrevBtn.onclick = () => {
                 const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
                 buildVisitorModal(newIndex);
