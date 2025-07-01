@@ -7,15 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #E5E7EB;
-            background-image: url('./sources/fondo.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 1rem; }
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #E5E7EB; padding: 1rem; }
+        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
         #admin-controls {
             position: fixed; top: 1rem; left: 1rem;
             background-color: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px);
@@ -55,6 +48,36 @@
         #lightbox-prev { left: 1rem; }
         #lightbox-next { right: 1rem; }
         #lightbox-close { position: absolute; top: 1rem; right: 1rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; }
+        .gallery-grid {
+            display: grid;
+            gap: 0.5rem; 
+            width: 100%;
+            aspect-ratio: 16 / 9; 
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .gallery-item img:hover {
+            transform: scale(1.05);
+        }
+        
+        .gallery-count-1 { grid-template-columns: 1fr; }
+     
+        .gallery-count-2 { grid-template-columns: repeat(2, 1fr); }
+       
+        .gallery-count-3 {
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: repeat(2, 1fr);
+        }
+        .gallery-count-3 .gallery-item:first-child {
+            grid-row: span 2; 
+        }
+        .delete-img-btn { position: absolute; top: -5px; right: -5px; background-color: red; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid white; cursor: pointer; }
         @media (max-width: 640px) { .stand { font-size: 2.8vw; } }
     </style>
 </head>
@@ -102,7 +125,6 @@
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN SEGURA DE FIREBASE ---
         const firebaseConfig = {
             apiKey: "__API_KEY__",
             authDomain: "__AUTH_DOMAIN__",
@@ -112,7 +134,6 @@
             appId: "__APP_ID__"
         };
         const ADMIN_UID = "__ADMIN_UID__";
-        // -------------------------------------------
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -163,11 +184,10 @@
         }
 
         window.Login = async function() {
-            if (isAdmin) { console.log("Ya has iniciado sesión como admin."); return; }
+            if (isAdmin) return;
             const email = prompt("Email de administrador:");
             const password = prompt("Contraseña:");
             if (!email || !password) return;
-
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
@@ -176,13 +196,8 @@
         }
 
         onAuthStateChanged(auth, (user) => {
-            if (user && user.uid === ADMIN_UID) {
-                isAdmin = true;
-                adminControls.style.display = 'block';
-            } else {
-                isAdmin = false;
-                adminControls.style.display = 'none';
-            }
+            isAdmin = user && user.uid === ADMIN_UID;
+            adminControls.style.display = isAdmin ? 'block' : 'none';
         });
         
         async function applyGlobalSize() {
@@ -288,19 +303,24 @@
 
         function buildVisitorModal(stand) {
             if (!stand) return;
-            const galleryHTML = stand.gallery && stand.gallery.length > 0
-                ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="flex flex-wrap gap-4">${stand.gallery.map((img, i) => `<img src="${img}" data-index="${i}" class="gallery-image">`).join('')}</div></div>`
+            const galleryContent = stand.gallery && stand.gallery.length > 0
+                ? `<div class="mt-6">
+                       <h4 class="text-lg font-semibold mb-2">Galería:</h4>
+                       <div class="gallery-grid gallery-count-${stand.gallery.length}">
+                           ${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}
+                       </div>
+                   </div>`
                 : '';
             
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg"><p class="text-green-400 text-lg font-semibold">Este stand está disponible.</p><a href="#" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">Ir al Formulario</a></div>`:`<div><h3 class="text-xl font-semibold text-blue-400">${stand.owner||"Expositor"}</h3><p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryHTML}`}`;
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg"><p class="text-green-400 text-lg font-semibold">Este stand está disponible.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">Ir al Formulario</a></div>`:`<div><h3 class="text-xl font-semibold text-blue-400">${stand.owner||"Expositor"}</h3><p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
-            modalContent.querySelectorAll('.gallery-image').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
+            modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
             showModal();
         }
 
         function buildAdminModal(stand) {
             if (!stand) return;
-            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="gallery-image"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
+            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
             
             document.getElementById('save-stand-changes').onclick = () => {
