@@ -46,9 +46,11 @@
         }
         .stand-tooltip {
             position: absolute;
-            bottom: 110%; 
+            bottom: 110%;
+            left: 50%;
             transform: translateX(-50%);
-            background-color: #1F2937; 
+            background-color: #1F2937;
+            color: white;
             padding: 0.25rem 0.75rem;
             border-radius: 0.375rem;
             font-size: 0.9rem;
@@ -57,10 +59,10 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s, visibility 0.2s;
-            pointer-events: none; 
+            pointer-events: none;
             z-index: 60;
         }
-        .stand:hover .stand-tooltip {
+        .stand:hover .stand-tooltip, .stand.show-tooltip .stand-tooltip {
             opacity: 1;
             visibility: visible;
         }
@@ -83,11 +85,20 @@
         .gallery-count-3 { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, 1fr); }
         .gallery-count-3 .gallery-item:first-child { grid-row: span 2; }
         .delete-img-btn { position: absolute; top: -5px; right: -5px; background-color: red; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid white; cursor: pointer; }
-        @media (max-width: 640px) { .stand { font-size: 2.4vw; } .stand-tooltip { font-size: 2vw; } }
+        .modal-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background-color: rgba(255,255,255,0.1); border-radius: 50%;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; cursor: pointer;
+        }
+        .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
+        .modal-nav:disabled { opacity: 0.2; cursor: not-allowed; }
+        #modal-prev { left: -50px; }
+        #modal-next { right: -50px; }
+        @media (max-width: 640px) { .stand { font-size: 2.4vw; } .stand-tooltip { font-size: 2vw; } #modal-prev { left: 5px; } #modal-next { right: 5px; } }
     </style>
 </head>
 <body>
-
     <div id="admin-controls" class="w-56">
         <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
         <div class="space-y-3">
@@ -115,7 +126,11 @@
     </div>
 
     <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
-        <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full max-w-lg transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
+        <div class="relative">
+            <button id="modal-prev" class="modal-nav">&lt;</button>
+            <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full max-w-lg transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
+            <button id="modal-next" class="modal-nav">&gt;</button>
+        </div>
     </div>
 
     <div id="lightbox" class="modal-backdrop fixed inset-0 hidden z-50">
@@ -151,6 +166,8 @@
         const infoModeToggle = document.getElementById('info-mode-toggle');
         const infoModal = document.getElementById('info-modal');
         const modalContent = document.getElementById('modal-content');
+        const modalPrevBtn = document.getElementById('modal-prev');
+        const modalNextBtn = document.getElementById('modal-next');
         const globalWidthInput = document.getElementById('global-width');
         const globalHeightInput = document.getElementById('global-height');
         const applyGlobalSizeBtn = document.getElementById('apply-global-size');
@@ -163,6 +180,7 @@
         let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false;
         let standsData = [];
         let currentLightboxImages = [], currentLightboxIndex = 0;
+        let longPressTimer;
 
         const initialStandsData = Array.from({ length: 33 }, (_, i) => {
             const id = i + 1;
@@ -172,17 +190,13 @@
             return {
                 id: id.toString(), top: 10 + (row * 12), left: 15 + (col * 15),
                 width: 12, height: 8, rotation: 0, status: 'available', owner: '', 
-                mainProduct: '', 
-                info: '', gallery: []
+                mainProduct: '', info: '', gallery: []
             };
         });
 
         async function initializeDataInFirestore() {
             const batch = writeBatch(db);
-            initialStandsData.forEach(stand => {
-                const standRef = doc(db, "fuyumatsuri-stands", stand.id);
-                batch.set(standRef, stand);
-            });
+            initialStandsData.forEach(stand => batch.set(doc(db, "fuyumatsuri-stands", stand.id), stand));
             await batch.commit();
         }
 
@@ -224,7 +238,8 @@
 
         function renderAll() {
             mapContainer.innerHTML = '';
-            standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id)).forEach(renderStand);
+            const sortedStands = standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id));
+            sortedStands.forEach(renderStand);
         }
 
         function renderStand(stand) {
@@ -236,12 +251,29 @@
             el.textContent = stand.displayId || stand.id;
             
             if (!isPositionEditMode) {
-                el.onclick = () => (isAdmin && isInfoEditMode) ? buildAdminModal(stand) : buildVisitorModal(stand);
+                el.onclick = () => {
+                    const standIndex = standsData.findIndex(s => s.id === stand.id);
+                    (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
+                };
                 if (stand.status === 'occupied' && stand.mainProduct) {
                     const tooltip = document.createElement('div');
                     tooltip.className = 'stand-tooltip';
                     tooltip.textContent = stand.mainProduct;
                     el.appendChild(tooltip);
+
+                    el.addEventListener('touchstart', (e) => {
+                        e.preventDefault(); 
+                        longPressTimer = setTimeout(() => {
+                            el.classList.add('show-tooltip');
+                        }, 500); 
+                    });
+                    el.addEventListener('touchend', () => {
+                        clearTimeout(longPressTimer);
+                        el.classList.remove('show-tooltip');
+                    });
+                    el.addEventListener('touchmove', () => {
+                        clearTimeout(longPressTimer); 
+                    });
                 }
             } else {
                 el.style.pointerEvents = 'none'; 
@@ -320,22 +352,29 @@
         function showModal() { infoModal.classList.remove('hidden'); setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10); }
         function hideModal() { modalContent.classList.add('scale-95', 'opacity-0'); setTimeout(() => infoModal.classList.add('hidden'), 300); }
 
-        function buildVisitorModal(stand) {
+        function buildVisitorModal(standIndex) {
+            const stand = standsData[standIndex];
             if (!stand) return;
             const galleryContent = stand.gallery && stand.gallery.length > 0
                 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>`
                 : '';
             
-            const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
+            const productSubtitle = stand.mainProduct ? `<p class="text-lg text-indigo-900 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
 
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`<div><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
+            
+            modalPrevBtn.disabled = standIndex === 0;
+            modalNextBtn.disabled = standIndex === standsData.length - 1;
+            modalPrevBtn.onclick = () => buildVisitorModal(standIndex - 1);
+            modalNextBtn.onclick = () => buildVisitorModal(standIndex + 1);
             showModal();
         }
 
-        function buildAdminModal(stand) {
+        function buildAdminModal(standIndex) {
+            const stand = standsData[standIndex];
             if (!stand) return;
             const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
@@ -368,6 +407,11 @@
                 };
             });
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
+            
+            modalPrevBtn.disabled = standIndex === 0;
+            modalNextBtn.disabled = standIndex === standsData.length - 1;
+            modalPrevBtn.onclick = () => buildAdminModal(standIndex - 1);
+            modalNextBtn.onclick = () => buildAdminModal(standIndex + 1);
             showModal();
         }
 
