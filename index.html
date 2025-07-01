@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Stands del Evento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #E5E7EB;
+            background-image: url('./sources/fondo.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 1rem; }
+        #admin-controls {
+            position: fixed; top: 1rem; left: 1rem;
+            background-color: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px);
+            padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(55, 65, 81, 0.5);
+            z-index: 100; display: none;
+        }
+        .logo-container { width: 100%; max-width: 450px; padding: 1rem 0; display: flex; justify-content: center; }
+        .logo-container img { max-width: 60%; height: auto; }
+        #map-card {
+            background-image: url('./sources/mapa.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative; aspect-ratio: 700 / 1245;
+            width: 100%; max-width: 450px; touch-action: none;
+        }
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .stand {
+            position: absolute; display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: bold; font-size: 1.5vw;
+            border-radius: 6px; transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
+            transform-origin: center center;
+        }
+        .available { background-color: rgba(34, 197, 94, 0.7); }
+        .occupied { background-color: rgba(107, 114, 128, 0.7); }
+        .stand.position-edit-mode { cursor: move; border: 2px dashed #f59e0b; z-index: 50; }
+        .handle { position: absolute; width: 18px; height: 18px; border-radius: 50%; display: none; z-index: 51; }
+        .stand.position-edit-mode .handle { display: block; }
+        .resize-handle { background-color: #f59e0b; border: 2px solid white; right: -10px; bottom: -10px; cursor: se-resize; }
+        .rotate-handle { background-color: #10b981; border: 2px solid white; top: -10px; left: 50%; transform: translateX(-50%); cursor: grab; }
+        .modal-backdrop { transition: opacity 0.3s ease; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
+        #lightbox:not(.hidden) { display: flex; justify-content: center; align-items: center; }
+        #lightbox img { max-height: 80vh; max-width: 80vw; }
+        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.5); color: white; border: none; font-size: 2rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 50%; }
+        #lightbox-prev { left: 1rem; }
+        #lightbox-next { right: 1rem; }
+        #lightbox-close { position: absolute; top: 1rem; right: 1rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; }
+        @media (max-width: 640px) { .stand { font-size: 2.8vw; } }
+    </style>
+</head>
+<body>
+
+    <div id="admin-controls" class="w-56">
+        <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
+        <div class="space-y-3">
+            <button id="position-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Posición</button>
+            <button id="info-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Información</button>
+        </div>
+        <hr class="my-4 border-gray-600">
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Tamaño Global (%)</label>
+            <div class="flex items-center space-x-2">
+                <input type="number" id="global-width" placeholder="Ancho" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="12">
+                <input type="number" id="global-height" placeholder="Alto" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="8">
+            </div>
+            <button id="apply-global-size" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm">Aplicar</button>
+        </div>
+        <div class="mt-3">
+            <button id="reset-rotations" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-sm">Restablecer Rotación</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
+        <div id="map-card"><div id="map-container"></div></div>
+        <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
+    </div>
+
+    <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
+        <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full max-w-lg transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
+    </div>
+
+    <div id="lightbox" class="modal-backdrop fixed inset-0 hidden z-50">
+        <button id="lightbox-close">&times;</button>
+        <button id="lightbox-prev" class="lightbox-nav">&lt;</button>
+        <img id="lightbox-image" src="" alt="Imagen ampliada">
+        <button id="lightbox-next" class="lightbox-nav">&gt;</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "__API_KEY__",
+            authDomain: "__AUTH_DOMAIN__",
+            projectId: "__PROJECT_ID__",
+            storageBucket: "__STORAGE_BUCKET__",
+            messagingSenderId: "__MESSAGING_SENDER_ID__",
+            appId: "__APP_ID__"
+        };
+        const ADMIN_UID = "__ADMIN_UID__";
+        // -------------------------------------------
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const mapContainer = document.getElementById('map-container');
+        const mapCard = document.getElementById('map-card');
+        const adminControls = document.getElementById('admin-controls');
+        const positionModeToggle = document.getElementById('position-mode-toggle');
+        const infoModeToggle = document.getElementById('info-mode-toggle');
+        const infoModal = document.getElementById('info-modal');
+        const modalContent = document.getElementById('modal-content');
+        const globalWidthInput = document.getElementById('global-width');
+        const globalHeightInput = document.getElementById('global-height');
+        const applyGlobalSizeBtn = document.getElementById('apply-global-size');
+        const resetRotationsBtn = document.getElementById('reset-rotations');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImage = document.getElementById('lightbox-image');
+        const lightboxPrev = document.getElementById('lightbox-prev');
+        const lightboxNext = document.getElementById('lightbox-next');
+        
+        let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false;
+        let standsData = [];
+        let currentLightboxImages = [], currentLightboxIndex = 0;
+
+        const initialStandsData = Array.from({ length: 33 }, (_, i) => {
+            const id = i + 1;
+            const standsPerRow = 5;
+            const row = Math.floor(i / standsPerRow);
+            const col = i % standsPerRow;
+            return {
+                id: id.toString(), top: 10 + (row * 12), left: 15 + (col * 15),
+                width: 12, height: 8, rotation: 0, status: 'available', owner: '', info: '', gallery: []
+            };
+        });
+
+        async function initializeDataInFirestore() {
+            const batch = writeBatch(db);
+            initialStandsData.forEach(stand => {
+                const standRef = doc(db, "fuyumatsuri-stands", stand.id);
+                batch.set(standRef, stand);
+            });
+            await batch.commit();
+        }
+
+        async function updateFirestoreDoc(docId, data) {
+            await setDoc(doc(db, "fuyumatsuri-stands", docId), data, { merge: true });
+        }
+
+        window.Login = async function() {
+            if (isAdmin) { console.log("Ya has iniciado sesión como admin."); return; }
+            const email = prompt("Email de administrador:");
+            const password = prompt("Contraseña:");
+            if (!email || !password) return;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert("Error al iniciar sesión: " + error.message);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.uid === ADMIN_UID) {
+                isAdmin = true;
+                adminControls.style.display = 'block';
+            } else {
+                isAdmin = false;
+                adminControls.style.display = 'none';
+            }
+        });
+        
+        async function applyGlobalSize() {
+            const width = parseFloat(globalWidthInput.value);
+            const height = parseFloat(globalHeightInput.value);
+            if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) return alert("Ingresa un ancho y alto válidos.");
+            const batch = writeBatch(db);
+            standsData.forEach(stand => batch.update(doc(db, "fuyumatsuri-stands", stand.id), { width, height }));
+            await batch.commit();
+        }
+
+        async function resetAllRotations() {
+            const batch = writeBatch(db);
+            standsData.forEach(stand => batch.update(doc(db, "fuyumatsuri-stands", stand.id), { rotation: 0 }));
+            await batch.commit();
+        }
+
+        function renderAll() {
+            mapContainer.innerHTML = '';
+            standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id)).forEach(renderStand);
+        }
+
+        function renderStand(stand) {
+            const el = document.createElement('div');
+            const statusClass = stand.status === 'occupied' ? 'occupied' : 'available';
+            el.className = `stand ${statusClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
+            el.style.cssText = `top:${stand.top}%; left:${stand.left}%; width:${stand.width}%; height:${stand.height}%; transform:translate(-50%,-50%) rotate(${stand.rotation||0}deg)`;
+            el.dataset.id = stand.id;
+            el.textContent = stand.displayId || stand.id;
+            el.onclick = () => (isAdmin && isInfoEditMode) ? buildAdminModal(stand) : buildVisitorModal(stand);
+            if (isPositionEditMode) makeEditable(el, stand);
+            mapContainer.appendChild(el);
+        }
+        
+        function makeEditable(element, dataObject) {
+            element.onmousedown = e => {
+                if (e.target.classList.contains('handle')) return;
+                e.preventDefault();
+                const mapRect = mapContainer.getBoundingClientRect();
+                const onMouseMove = e_move => {
+                    element.style.left = `${(e_move.clientX - mapRect.left) / mapRect.width * 100}%`;
+                    element.style.top = `${(e_move.clientY - mapRect.top) / mapRect.height * 100}%`;
+                };
+                const onMouseUp = e_up => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    const newLeft = (e_up.clientX - mapRect.left) / mapRect.width * 100;
+                    const newTop = (e_up.clientY - mapRect.top) / mapRect.height * 100;
+                    updateFirestoreDoc(dataObject.id, { top: newTop, left: newLeft });
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'handle resize-handle';
+            element.appendChild(resizeHandle);
+            resizeHandle.onmousedown = e_resize => {
+                e_resize.stopPropagation();
+                const mapRect = mapContainer.getBoundingClientRect();
+                const startX = e_resize.clientX, startY = e_resize.clientY;
+                const startWidth = element.offsetWidth, startHeight = element.offsetHeight;
+                const onMouseMove = e_move => {
+                    element.style.width = `${(startWidth + e_move.clientX - startX) / mapRect.width * 100}%`;
+                    element.style.height = `${(startHeight + e_move.clientY - startY) / mapRect.height * 100}%`;
+                };
+                const onMouseUp = e_up => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    const newWidth = (startWidth + e_up.clientX - startX) / mapRect.width * 100;
+                    const newHeight = (startHeight + e_up.clientY - startY) / mapRect.height * 100;
+                    updateFirestoreDoc(dataObject.id, { width: newWidth, height: newHeight });
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+            
+            const rotateHandle = document.createElement('div');
+            rotateHandle.className = 'handle rotate-handle';
+            element.appendChild(rotateHandle);
+            rotateHandle.onmousedown = e_rotate => {
+                e_rotate.stopPropagation();
+                const rect = element.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const onMouseMove = e_move => {
+                    const angle = Math.atan2(e_move.clientY - centerY, e_move.clientX - centerX) * (180 / Math.PI) + 90;
+                    element.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+                };
+                const onMouseUp = e_up => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    const angle = Math.atan2(e_up.clientY - centerY, e_up.clientX - centerX) * (180 / Math.PI) + 90;
+                    updateFirestoreDoc(dataObject.id, { rotation: angle });
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+        }
+        
+        function showModal() { infoModal.classList.remove('hidden'); setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10); }
+        function hideModal() { modalContent.classList.add('scale-95', 'opacity-0'); setTimeout(() => infoModal.classList.add('hidden'), 300); }
+
+        function buildVisitorModal(stand) {
+            if (!stand) return;
+            const galleryHTML = stand.gallery && stand.gallery.length > 0
+                ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="flex flex-wrap gap-4">${stand.gallery.map((img, i) => `<img src="${img}" data-index="${i}" class="gallery-image">`).join('')}</div></div>`
+                : '';
+            
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg"><p class="text-green-400 text-lg font-semibold">Este stand está disponible.</p><a href="#" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">Ir al Formulario</a></div>`:`<div><h3 class="text-xl font-semibold text-blue-400">${stand.owner||"Expositor"}</h3><p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryHTML}`}`;
+            modalContent.querySelector('#close-modal-btn').onclick = hideModal;
+            modalContent.querySelectorAll('.gallery-image').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
+            showModal();
+        }
+
+        function buildAdminModal(stand) {
+            if (!stand) return;
+            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="gallery-image"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
+            
+            document.getElementById('save-stand-changes').onclick = () => {
+                const updatedData = {
+                    status: document.getElementById('stand-status').value,
+                    owner: document.getElementById('stand-owner').value,
+                    info: document.getElementById('stand-info').value,
+                };
+                updateFirestoreDoc(stand.id, updatedData).then(hideModal);
+            };
+
+            document.getElementById('add-image').onchange = e => {
+                if (e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = re => {
+                        const newGallery = [...(stand.gallery || []), re.target.result];
+                        updateFirestoreDoc(stand.id, { gallery: newGallery });
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            };
+            
+            modalContent.querySelectorAll('.delete-img-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const newGallery = stand.gallery.filter((_, i) => i !== parseInt(btn.dataset.index));
+                    updateFirestoreDoc(stand.id, { gallery: newGallery });
+                };
+            });
+            modalContent.querySelector('#close-modal-btn').onclick = hideModal;
+            showModal();
+        }
+
+        function openLightbox(images, index) {
+            currentLightboxImages = images;
+            currentLightboxIndex = index;
+            lightbox.classList.remove('hidden');
+            updateLightboxImage();
+        }
+
+        function updateLightboxImage() {
+            lightboxImage.src = currentLightboxImages[currentLightboxIndex];
+        }
+
+        function changeLightboxImage(direction) {
+            currentLightboxIndex += direction;
+            if (currentLightboxIndex < 0) {
+                currentLightboxIndex = currentLightboxImages.length - 1;
+            } else if (currentLightboxIndex >= currentLightboxImages.length) {
+                currentLightboxIndex = 0;
+            }
+            updateLightboxImage();
+        }
+        
+        function togglePositionMode() {
+            isPositionEditMode = !isPositionEditMode;
+            positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode);
+            positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
+            mapCard.classList.toggle('position-edit-mode', isPositionEditMode);
+            renderAll();
+        }
+        
+        function toggleInfoMode() {
+            isInfoEditMode = !isInfoEditMode;
+            infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode);
+            infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
+        }
+
+        async function main() {
+            try {
+                if (!auth.currentUser) {
+                    await signInAnonymously(auth);
+                }
+                onSnapshot(collection(db, "fuyumatsuri-stands"), (snapshot) => {
+                    if (snapshot.empty && initialStandsData.length > 0) {
+                        initializeDataInFirestore();
+                    } else {
+                        standsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderAll();
+                    }
+                });
+            } catch (error) {
+                console.error("Error en la inicialización:", error);
+            }
+        }
+
+        positionModeToggle.addEventListener('click', togglePositionMode);
+        infoModeToggle.addEventListener('click', toggleInfoMode);
+        applyGlobalSizeBtn.addEventListener('click', applyGlobalSize);
+        resetRotationsBtn.addEventListener('click', resetAllRotations);
+        infoModal.addEventListener('click', (e) => { if (e.target === infoModal) hideModal(); });
+        document.getElementById('lightbox-close').onclick = () => lightbox.classList.add('hidden');
+        lightboxPrev.onclick = () => changeLightboxImage(-1);
+        lightboxNext.onclick = () => changeLightboxImage(1);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) {
+                lightbox.classList.add('hidden');
+            }
+        });
+
+        main();
+    </script>
+</body>
+</html>
