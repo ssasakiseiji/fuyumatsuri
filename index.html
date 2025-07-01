@@ -36,8 +36,8 @@
             transform-origin: center center;
             opacity: 1;
         }
-        .available { background-color: rgb(36, 148, 77); }
-        .occupied { background-color: rgba(107, 114, 128, 1); }
+        .available { background-color: rgb(34, 197, 94); }
+        .occupied { background-color: rgb(107, 114, 128); }
         .stand.position-edit-mode {
             cursor: move;
             border: 2px dashed #f59e0b;
@@ -89,16 +89,16 @@
             position: absolute; top: 50%; transform: translateY(-50%);
             background-color: rgba(255,255,255,0.1); border-radius: 50%;
             width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; cursor: pointer;
+            font-size: 1.5rem; cursor: pointer; transition: background-color 0.2s;
         }
         .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
-        .modal-nav:disabled { opacity: 0.2; cursor: not-allowed; }
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
         @media (max-width: 640px) { .stand { font-size: 2.4vw; } .stand-tooltip { font-size: 2vw; } #modal-prev { left: 5px; } #modal-next { right: 5px; } }
     </style>
 </head>
 <body>
+
     <div id="admin-controls" class="w-56">
         <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
         <div class="space-y-3">
@@ -181,6 +181,7 @@
         let standsData = [];
         let currentLightboxImages = [], currentLightboxIndex = 0;
         let longPressTimer;
+        let sortedStands = [];
 
         const initialStandsData = Array.from({ length: 33 }, (_, i) => {
             const id = i + 1;
@@ -238,7 +239,7 @@
 
         function renderAll() {
             mapContainer.innerHTML = '';
-            const sortedStands = standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id));
+            sortedStands = standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id));
             sortedStands.forEach(renderStand);
         }
 
@@ -252,7 +253,7 @@
             
             if (!isPositionEditMode) {
                 el.onclick = () => {
-                    const standIndex = standsData.findIndex(s => s.id === stand.id);
+                    const standIndex = sortedStands.findIndex(s => s.id === stand.id);
                     (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
                 };
                 if (stand.status === 'occupied' && stand.mainProduct) {
@@ -261,19 +262,23 @@
                     tooltip.textContent = stand.mainProduct;
                     el.appendChild(tooltip);
 
+                    // --- LÓGICA DE LONG PRESS PARA MÓVILES ---
+                    let wasLongPress = false;
                     el.addEventListener('touchstart', (e) => {
-                        e.preventDefault(); 
+                        wasLongPress = false;
                         longPressTimer = setTimeout(() => {
+                            wasLongPress = true;
                             el.classList.add('show-tooltip');
-                        }, 500); 
+                        }, 500);
                     });
                     el.addEventListener('touchend', () => {
                         clearTimeout(longPressTimer);
-                        el.classList.remove('show-tooltip');
+                        setTimeout(() => el.classList.remove('show-tooltip'), 200); // Hide tooltip after a moment
+                        if (wasLongPress) {
+                            e.preventDefault(); // Prevent click from firing after long press
+                        }
                     });
-                    el.addEventListener('touchmove', () => {
-                        clearTimeout(longPressTimer); 
-                    });
+                    el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
                 }
             } else {
                 el.style.pointerEvents = 'none'; 
@@ -302,7 +307,6 @@
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             };
-
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'handle resize-handle';
             element.appendChild(resizeHandle);
@@ -325,7 +329,6 @@
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             };
-            
             const rotateHandle = document.createElement('div');
             rotateHandle.className = 'handle rotate-handle';
             element.appendChild(rotateHandle);
@@ -353,28 +356,33 @@
         function hideModal() { modalContent.classList.add('scale-95', 'opacity-0'); setTimeout(() => infoModal.classList.add('hidden'), 300); }
 
         function buildVisitorModal(standIndex) {
-            const stand = standsData[standIndex];
+            const stand = sortedStands[standIndex];
             if (!stand) return;
             const galleryContent = stand.gallery && stand.gallery.length > 0
                 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>`
                 : '';
             
-            const productSubtitle = stand.mainProduct ? `<p class="text-lg text-indigo-900 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
+            const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
 
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`<div><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
             
-            modalPrevBtn.disabled = standIndex === 0;
-            modalNextBtn.disabled = standIndex === standsData.length - 1;
-            modalPrevBtn.onclick = () => buildVisitorModal(standIndex - 1);
-            modalNextBtn.onclick = () => buildVisitorModal(standIndex + 1);
+            // --- LÓGICA DE NAVEGACIÓN EN BUCLE ---
+            modalPrevBtn.onclick = () => {
+                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
+                buildVisitorModal(newIndex);
+            };
+            modalNextBtn.onclick = () => {
+                const newIndex = (standIndex + 1) % sortedStands.length;
+                buildVisitorModal(newIndex);
+            };
             showModal();
         }
 
         function buildAdminModal(standIndex) {
-            const stand = standsData[standIndex];
+            const stand = sortedStands[standIndex];
             if (!stand) return;
             const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
@@ -408,10 +416,14 @@
             });
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             
-            modalPrevBtn.disabled = standIndex === 0;
-            modalNextBtn.disabled = standIndex === standsData.length - 1;
-            modalPrevBtn.onclick = () => buildAdminModal(standIndex - 1);
-            modalNextBtn.onclick = () => buildAdminModal(standIndex + 1);
+            modalPrevBtn.onclick = () => {
+                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
+                buildAdminModal(newIndex);
+            };
+            modalNextBtn.onclick = () => {
+                const newIndex = (standIndex + 1) % sortedStands.length;
+                buildAdminModal(newIndex);
+            };
             showModal();
         }
 
