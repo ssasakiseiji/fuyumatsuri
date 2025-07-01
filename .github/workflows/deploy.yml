@@ -1,0 +1,29 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Replace Firebase Config Placeholders
+        run: |
+          sed -i 's|__API_KEY__|${{ secrets.API_KEY }}|g' index.html
+          sed -i 's|__AUTH_DOMAIN__|${{ secrets.AUTH_DOMAIN }}|g' index.html
+          sed -i 's|__PROJECT_ID__|${{ secrets.PROJECT_ID }}|g' index.html
+          sed -i 's|__STORAGE_BUCKET__|${{ secrets.STORAGE_BUCKET }}|g' index.html
+          sed -i 's|__MESSAGING_SENDER_ID__|${{ secrets.MESSAGING_SENDER_ID }}|g' index.html
+          sed -i 's|__APP_ID__|${{ secrets.APP_ID }}|g' index.html
+          sed -i 's|__ADMIN_UID__|${{ secrets.ADMIN_UID }}|g' index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
