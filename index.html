@@ -7,26 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        html { height: 100%; }
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #E5E7EB;
-            margin: 0;
+        body { font-family: 'Inter', sans-serif; color: #E5E7EB; }
+        #app-container { 
+            display: flex; flex-direction: column; 
+            align-items: center; width: 100%;
+            position: relative; 
+            z-index: 20; 
+            padding: 1rem; 
         }
-        #background-overlay {
-            position: fixed;
-            height: 100vh;
-            width: 100vw;
-            top: 0;
-            left: 0;
-            background-image: url('./sources/fondo.jpg');
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            z-index: -1;
-        }
-        #scroll-wrapper { height: 100vh; overflow-y: auto; width: 100%; }
-        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 1rem; box-sizing: border-box; }
         #admin-controls {
             position: fixed; top: 1rem; left: 1rem;
             background-color: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px);
@@ -34,7 +22,6 @@
             z-index: 100; display: none;
         }
         .logo-container { width: 100%; max-width: 450px; padding: 1rem 0; display: flex; justify-content: center; }
-        #main-logo-container img { max-width: 90%; height: auto; opacity: 1; }
         .logo-container img { max-width: 60%; height: auto; }
         #map-card {
             background-image: url('./sources/mapa.png');
@@ -55,39 +42,13 @@
             transform-origin: center center;
             opacity: 1;
         }
-        .available { background-color: rgb(34, 197, 94); }
-        .occupied { background-color: rgb(107, 114, 128); }
+        .available { background-color: rgba(34, 197, 94, 0.9); }
+        .occupied { background-color: rgba(107, 114, 128, 0.9); }
         .stand.position-edit-mode {
             cursor: move;
             border: 2px dashed #f59e0b;
             z-index: 50;
             opacity: 0.7;
-        }
-        .hidden-visible {
-            background-color: rgba(139, 92, 246, 0.5);
-            border: 2px dashed #a78bfa;
-        }
-        .stand-tooltip {
-            position: absolute;
-            bottom: 110%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #1F2937;
-            color: white;
-            padding: 0.4rem 0.8rem;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
-            pointer-events: none;
-            z-index: 60;
-        }
-        .stand:hover .stand-tooltip, .stand.show-tooltip .stand-tooltip {
-            opacity: 1;
-            visibility: visible;
         }
         .handle { position: absolute; width: 18px; height: 18px; border-radius: 50%; display: none; z-index: 51; }
         .stand.position-edit-mode .handle { display: block; }
@@ -108,60 +69,109 @@
         .gallery-count-3 { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, 1fr); }
         .gallery-count-3 .gallery-item:first-child { grid-row: span 2; }
         .delete-img-btn { position: absolute; top: -5px; right: -5px; background-color: red; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid white; cursor: pointer; }
-        .modal-nav {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            background-color: rgba(255,255,255,0.1); border-radius: 50%;
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; cursor: pointer; transition: background-color 0.2s;
-            z-index: 150;
+        @media (max-width: 640px) { .stand { font-size: 2.4vw; } }
+
+        @keyframes fall {
+            0% { transform: translateY(-10vh) translateX(0); opacity: 1; }
+            100% { transform: translateY(110vh) translateX(2vw); opacity: 1; }
         }
-        .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
-        #modal-prev { left: -50px; }
-        #modal-next { right: -50px; }
-        @media (max-width: 640px) { .stand { font-size: 2.4vw; } .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} #modal-prev { left: 5px; } #modal-next { right: 5px; } }
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8)); }
+            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 1)); }
+        }
+        @keyframes float-sway {
+            0%, 100% { transform: rotate(-2deg) translateY(0px); }
+            50% { transform: rotate(2deg) translateY(-8px); }
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.9) rotate(0deg); }
+            50% { opacity: 0.8; transform: scale(1) rotate(5deg); }
+        }
+        .snowflake {
+            position: absolute; top: -10vh; background-color: white; border-radius: 50%;
+            opacity: 0; animation: fall linear infinite; box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+        .lantern {
+            position: absolute; animation: glow 4s infinite ease-in-out, float-sway 7s infinite ease-in-out;
+            transform-origin: center center;
+        }
+        .star {
+            position: absolute; animation: twinkle linear infinite;
+        }
     </style>
 </head>
-<body>
-    <div id="background-overlay"></div>
-    <div id="scroll-wrapper">
-        <div id="admin-controls" class="w-56">
-            <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
-            <div class="space-y-3">
-                <button id="position-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Posición</button>
-                <button id="info-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Información</button>
-            </div>
-            <hr class="my-4 border-gray-600">
-            <!-- CHANGE: Nueva opción para mostrar stands ocultos -->
-            <div id="show-hidden-container" class="mt-3 flex items-center hidden">
-                <input type="checkbox" id="show-hidden-toggle" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                <label for="show-hidden-toggle" class="ml-2 block text-sm text-gray-300">Mostrar Ocultos</label>
-            </div>
-            <div class="mt-3">
-                <label class="block text-sm font-medium text-gray-300 mb-1">Tamaño Global (%)</label>
-                <div class="flex items-center space-x-2">
-                    <input type="number" id="global-width" placeholder="Ancho" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="12">
-                    <input type="number" id="global-height" placeholder="Alto" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="8">
+<body class="bg-gray-900">
+
+    <div class="fixed inset-0 z-[-10] overflow-hidden">
+        
+        <div id="star-container" class="absolute inset-0 pointer-events-none"></div>
+        <div id="snow-container" class="absolute inset-0 pointer-events-none"></div>
+
+        <div class="absolute top-0 left-0 right-0 h-64">
+            <div class="absolute top-0 left-0 w-64 h-64 md:w-96 md:h-96">
+                <div class="relative w-full h-full">
+                    <div class="lantern top-[10%] left-[5%]" style="animation-delay: 0.5s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[25%] left-[30%]" style="animation-delay: 1.8s;"><svg class="w-16 h-20 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[45%] left-[15%]" style="animation-delay: 1.2s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[50%] left-[40%]" style="animation-delay: 2.5s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[35%] left-[5%]" style="animation-delay: 3.1s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                 </div>
-                <button id="apply-global-size" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm">Aplicar</button>
             </div>
-            <div class="mt-3">
-                <button id="reset-rotations" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-sm">Restablecer Rotación</button>
+
+            <div class="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96">
+                <div class="relative w-full h-full">
+                    <div class="lantern top-[15%] right-[10%]" style="animation-delay: 0s;"><svg class="w-20 h-24 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[38%] right-[30%]" style="animation-delay: 0.8s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[55%] right-[15%]" style="animation-delay: 2.2s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[10%] right-[45%]" style="animation-delay: 1.5s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[60%] right-[40%]" style="animation-delay: 3.5s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                </div>
             </div>
         </div>
 
-        <div id="app-container">
-            <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
-            <div id="map-card"><div id="map-container"></div></div>
-            <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
+      
+        <div class="absolute inset-0">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] bg-gray-800/20 rounded-full blur-3xl"></div>
+        </div>
+
+       
+        <div class="absolute bottom-0 left-0 right-0 h-48">
+            <svg class="absolute bottom-0 left-0 right-0 w-full h-full text-gray-800/90" viewBox="0 0 800 100" preserveAspectRatio="none" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M800 100H0V56.8s28.1-28.1 78.6-28.1 63.5 21.1 120.9 21.1S291.9 32 344.4 32s63.5 35.8 114.9 35.8S540.9 2.1 600.4 2.1c59.5 0 82.1 40.6 121.9 40.6s77.7-25.5 77.7-25.5V100z" opacity="0.7"/>
+                <path d="M800 100H0V71.9s22.2-22.2 62.1-22.2S130 71.9 180.5 71.9 253.9 32 306.4 32s63.5 35.8 114.9 35.8S502.9 20.9 562.4 20.9c59.5 0 96.4 46.5 136.2 46.5s101.4-36.2 101.4-36.2V100z"/>
+            </svg>
         </div>
     </div>
 
-    <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
-        <div class="relative w-full max-w-lg">
-            <button id="modal-prev" class="modal-nav">&lt;</button>
-            <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
-            <button id="modal-next" class="modal-nav">&gt;</button>
+   
+    <div id="admin-controls" class="w-56">
+        <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
+        <div class="space-y-3">
+            <button id="position-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Posición</button>
+            <button id="info-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Información</button>
         </div>
+        <hr class="my-4 border-gray-600">
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Tamaño Global (%)</label>
+            <div class="flex items-center space-x-2">
+                <input type="number" id="global-width" placeholder="Ancho" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="12">
+                <input type="number" id="global-height" placeholder="Alto" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="8">
+            </div>
+            <button id="apply-global-size" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm">Aplicar</button>
+        </div>
+        <div class="mt-3">
+            <button id="reset-rotations" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-sm">Restablecer Rotación</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
+        <div id="map-card"><div id="map-container"></div></div>
+        <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
+    </div>
+
+    <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
+        <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full max-w-lg transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
     </div>
 
     <div id="lightbox" class="modal-backdrop fixed inset-0 hidden z-50">
@@ -195,12 +205,8 @@
         const adminControls = document.getElementById('admin-controls');
         const positionModeToggle = document.getElementById('position-mode-toggle');
         const infoModeToggle = document.getElementById('info-mode-toggle');
-        const showHiddenContainer = document.getElementById('show-hidden-container');
-        const showHiddenToggle = document.getElementById('show-hidden-toggle');
         const infoModal = document.getElementById('info-modal');
         const modalContent = document.getElementById('modal-content');
-        const modalPrevBtn = document.getElementById('modal-prev');
-        const modalNextBtn = document.getElementById('modal-next');
         const globalWidthInput = document.getElementById('global-width');
         const globalHeightInput = document.getElementById('global-height');
         const applyGlobalSizeBtn = document.getElementById('apply-global-size');
@@ -210,11 +216,30 @@
         const lightboxPrev = document.getElementById('lightbox-prev');
         const lightboxNext = document.getElementById('lightbox-next');
         
-        let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false, showHidden = false;
+        let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false;
         let standsData = [];
         let currentLightboxImages = [], currentLightboxIndex = 0;
-        let longPressTimer;
-        let sortedStands = [];
+        let activeModalStandId = null; 
+
+        const initialStandsData = Array.from({ length: 33 }, (_, i) => {
+            const id = i + 1;
+            const standsPerRow = 5;
+            const row = Math.floor(i / standsPerRow);
+            const col = i % standsPerRow;
+            return {
+                id: id.toString(), top: 10 + (row * 12), left: 15 + (col * 15),
+                width: 12, height: 8, rotation: 0, status: 'available', owner: '', info: '', gallery: []
+            };
+        });
+
+        async function initializeDataInFirestore() {
+            const batch = writeBatch(db);
+            initialStandsData.forEach(stand => {
+                const standRef = doc(db, "fuyumatsuri-stands", stand.id);
+                batch.set(standRef, stand);
+            });
+            await batch.commit();
+        }
 
         async function updateFirestoreDoc(docId, data) {
             await setDoc(doc(db, "fuyumatsuri-stands", docId), data, { merge: true });
@@ -242,80 +267,35 @@
             const height = parseFloat(globalHeightInput.value);
             if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) return alert("Ingresa un ancho y alto válidos.");
             const batch = writeBatch(db);
-            standsData.forEach(stand => {
-                if(stand.status !== 'hidden') {
-                    batch.update(doc(db, "fuyumatsuri-stands", stand.id), { width, height })
-                }
-            });
+            standsData.forEach(stand => batch.update(doc(db, "fuyumatsuri-stands", stand.id), { width, height }));
             await batch.commit();
         }
 
         async function resetAllRotations() {
             const batch = writeBatch(db);
-            standsData.forEach(stand => {
-                 if(stand.status !== 'hidden') {
-                    batch.update(doc(db, "fuyumatsuri-stands", stand.id), { rotation: 0 })
-                 }
-            });
+            standsData.forEach(stand => batch.update(doc(db, "fuyumatsuri-stands", stand.id), { rotation: 0 }));
             await batch.commit();
         }
 
         function renderAll() {
             mapContainer.innerHTML = '';
-            const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
-                ? standsData
-                : standsData.filter(s => s.status !== 'hidden');
-
-            sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
-            sortedStands.forEach(renderStand);
+            standsData.sort((a,b) => parseInt(a.id) - parseInt(b.id)).forEach(renderStand);
         }
 
         function renderStand(stand) {
             const el = document.createElement('div');
-            let statusClass = stand.status === 'occupied' ? 'occupied' : 'available';
-            if (stand.status === 'hidden') {
-                statusClass = 'hidden-visible';
-            }
+            const statusClass = stand.status === 'occupied' ? 'occupied' : 'available';
             el.className = `stand ${statusClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
             el.style.cssText = `top:${stand.top}%; left:${stand.left}%; width:${stand.width}%; height:${stand.height}%; transform:translate(-50%,-50%) rotate(${stand.rotation||0}deg)`;
             el.dataset.id = stand.id;
             el.textContent = stand.displayId || stand.id;
             
-            const clickEnabled = !isPositionEditMode || (isPositionEditMode && isInfoEditMode);
-
-            if (clickEnabled) {
-                let wasLongPress = false;
-                el.addEventListener('click', (e) => {
-                    if (wasLongPress) {
-                        e.preventDefault();
-                        return;
-                    }
-                    const standIndex = sortedStands.findIndex(s => s.id === stand.id);
-                    (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
-                });
-
-                if (stand.status === 'occupied' && stand.mainProduct) {
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'stand-tooltip';
-                    tooltip.textContent = stand.mainProduct;
-                    el.appendChild(tooltip);
-
-                    el.addEventListener('contextmenu', e => e.preventDefault());
-                    el.addEventListener('touchstart', (e) => {
-                        wasLongPress = false;
-                        longPressTimer = setTimeout(() => {
-                            wasLongPress = true;
-                            el.classList.add('show-tooltip');
-                        }, 500);
-                    }, { passive: true });
-                    el.addEventListener('touchend', () => {
-                        clearTimeout(longPressTimer);
-                        setTimeout(() => el.classList.remove('show-tooltip'), 200);
-                    });
-                    el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-                }
+            if (!isPositionEditMode) {
+                el.onclick = () => (isAdmin && isInfoEditMode) ? buildAdminModal(stand) : buildVisitorModal(stand);
+            } else {
+                el.style.pointerEvents = 'none'; 
             }
-            
+
             if (isPositionEditMode) {
                 makeEditable(el, stand);
             }
@@ -389,48 +369,38 @@
             };
         }
         
-        function showModal() { infoModal.classList.remove('hidden'); setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10); }
-        function hideModal() { modalContent.classList.add('scale-95', 'opacity-0'); setTimeout(() => infoModal.classList.add('hidden'), 300); }
+        function showModal(standId) { 
+            activeModalStandId = standId; 
+            infoModal.classList.remove('hidden'); 
+            setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10); 
+        }
+        function hideModal() { 
+            activeModalStandId = null; 
+            modalContent.classList.add('scale-95', 'opacity-0'); 
+            setTimeout(() => infoModal.classList.add('hidden'), 300); 
+        }
 
-        function buildVisitorModal(standIndex) {
-            const stand = sortedStands[standIndex];
+        function buildVisitorModal(stand) {
             if (!stand) return;
             const galleryContent = stand.gallery && stand.gallery.length > 0
                 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>`
                 : '';
             
-            const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
-            const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
-            
-            const infoSection = `<div class="min-h-[100px]"><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>`;
-
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg"><p class="text-green-400 text-lg font-semibold">Este stand está disponible.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">Ir al Formulario</a></div>`:`<div><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3><p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
-            
-            modalPrevBtn.onclick = () => {
-                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
-                buildVisitorModal(newIndex);
-            };
-            modalNextBtn.onclick = () => {
-                const newIndex = (standIndex + 1) % sortedStands.length;
-                buildVisitorModal(newIndex);
-            };
-            showModal();
+            showModal(stand.id);
         }
 
-        function buildAdminModal(standIndex) {
-            const currentId = sortedStands[standIndex].id;
-            const stand = standsData.find(s => s.id === currentId);
+        function buildAdminModal(stand) {
             if (!stand) return;
             const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
             
             document.getElementById('save-stand-changes').onclick = () => {
                 const updatedData = {
                     status: document.getElementById('stand-status').value,
                     owner: document.getElementById('stand-owner').value,
-                    mainProduct: document.getElementById('stand-product').value,
                     info: document.getElementById('stand-info').value,
                 };
                 updateFirestoreDoc(stand.id, updatedData).then(hideModal);
@@ -454,16 +424,7 @@
                 };
             });
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
-            
-            modalPrevBtn.onclick = () => {
-                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
-                buildAdminModal(newIndex);
-            };
-            modalNextBtn.onclick = () => {
-                const newIndex = (standIndex + 1) % sortedStands.length;
-                buildAdminModal(newIndex);
-            };
-            showModal();
+            showModal(stand.id);
         }
 
         function openLightbox(images, index) {
@@ -491,11 +452,6 @@
             isPositionEditMode = !isPositionEditMode;
             positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode);
             positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
-            showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
-            if (!isPositionEditMode) {
-                showHiddenToggle.checked = false;
-                showHidden = false;
-            }
             mapCard.classList.toggle('position-edit-mode', isPositionEditMode);
             renderAll();
         }
@@ -504,19 +460,28 @@
             isInfoEditMode = !isInfoEditMode;
             infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode);
             infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
-            showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
-            if (!isInfoEditMode) {
-                showHiddenToggle.checked = false;
-                showHidden = false;
-            }
-            renderAll();
         }
 
         async function main() {
             try {
                 onSnapshot(collection(db, "fuyumatsuri-stands"), (snapshot) => {
-                    standsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderAll();
+                    if (snapshot.empty && initialStandsData.length > 0) {
+                        initializeDataInFirestore();
+                    } else {
+                        standsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderAll();
+
+                        
+                        if (activeModalStandId && !infoModal.classList.contains('hidden')) {
+                            const standToUpdate = standsData.find(s => s.id === activeModalStandId);
+                            if (standToUpdate) {
+                                
+                                if (document.getElementById('save-stand-changes')) {
+                                    buildAdminModal(standToUpdate);
+                                }
+                            }
+                        }
+                    }
                 });
             } catch (error) {
                 console.error("Error en la inicialización:", error);
@@ -525,10 +490,6 @@
 
         positionModeToggle.addEventListener('click', togglePositionMode);
         infoModeToggle.addEventListener('click', toggleInfoMode);
-        showHiddenToggle.addEventListener('change', () => {
-            showHidden = showHiddenToggle.checked;
-            renderAll();
-        });
         applyGlobalSizeBtn.addEventListener('click', applyGlobalSize);
         resetRotationsBtn.addEventListener('click', resetAllRotations);
         infoModal.addEventListener('click', (e) => { if (e.target === infoModal) hideModal(); });
@@ -542,6 +503,60 @@
         });
 
         main();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const snowContainer = document.getElementById('snow-container');
+            const starContainer = document.getElementById('star-container');
+            const isMobile = window.innerWidth < 768;
+            
+            // Nieve sutil
+            const numberOfSnowflakes = isMobile ? 25 : 50;
+            for (let i = 0; i < numberOfSnowflakes; i++) {
+                const snowflake = document.createElement('div');
+                const size = Math.random() * 3 + 1.5;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 12 + 10;
+                const delay = Math.random() * 15;
+                snowflake.className = 'snowflake';
+                snowflake.style.width = `${size}px`;
+                snowflake.style.height = `${size}px`;
+                snowflake.style.left = `${left}vw`;
+                snowflake.style.animationDuration = `${duration}s`;
+                snowflake.style.animationDelay = `${delay}s`;
+                snowContainer.appendChild(snowflake);
+            }
+
+            const starColors = ['#FFFFFF', '#FFFACD', '#FFDFD3']; 
+            const numberOfStars = isMobile ? 60 : 120; 
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                const size = Math.random() * 5 + 2;
+                const top = Math.random() * 100;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 5 + 4; 
+                const delay = Math.random() * 9;
+                
+                star.setAttribute('class', 'star');
+                star.setAttribute('viewBox', '0 0 20 20');
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.top = `${top}vh`;
+                star.style.left = `${left}vw`;
+                star.style.animationDuration = `${duration}s`;
+                star.style.animationDelay = `${delay}s`;
+                star.style.filter = 'drop-shadow(0 0 6px ' + starColors[i % starColors.length] + ')';
+
+
+                const starPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                starPath.setAttribute('d', 'M10 0 L12.24 7.76 L20 10 L12.24 12.24 L10 20 L7.76 12.24 L0 10 L7.76 7.76 Z');
+                starPath.setAttribute('fill', starColors[i % starColors.length]);
+                
+                star.appendChild(starPath);
+                starContainer.appendChild(star);
+            }
+        });
     </script>
 </body>
 </html>
