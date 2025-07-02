@@ -47,7 +47,7 @@
         .stand {
             position: absolute; display: flex; justify-content: center; align-items: center;
             color: white; font-weight: bold;
-            font-size: 0.9vw; /* Tamaño de fuente reducido */
+            font-size: 0.8vw; 
             border-radius: 6px; transition: all 0.2s ease-in-out;
             border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
             transform-origin: center center;
@@ -104,19 +104,18 @@
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
         
-        /* Media Query para móviles */
+       
         @media (max-width: 640px) { 
             #app-container { padding: 1rem; justify-content: flex-start; } 
-            .logo-container:not(#main-logo-container) { display: none; } /* Oculta solo el logo de abajo */
             .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
             #modal-next { right: 5px; }
             .lantern-corner-container { width: 12rem; height: 12rem; }
-            .lantern { transform: scale(0.7); } /* Reduce el tamaño de las linternas en móvil */
+            .lantern { transform: scale(0.7); }
         }
 
-        /* Estilos y animaciones del fondo */
+        
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
