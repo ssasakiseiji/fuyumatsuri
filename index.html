@@ -47,7 +47,7 @@
         .stand {
             position: absolute; display: flex; justify-content: center; align-items: center;
             color: white; font-weight: bold;
-            font-size: 0.8vw; 
+            font-size: 0.9vw;
             border-radius: 6px; transition: all 0.2s ease-in-out;
             border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
             transform-origin: center center;
@@ -104,18 +104,64 @@
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
         
-       
+        /* Estilos para la nueva sección de información */
+        .event-info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: rgba(17, 24, 39, 0.5);
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.125rem;
+            color: #D1D5DB;
+        }
+        .info-item a {
+            text-decoration: none;
+            color: #93C5FD;
+            transition: color 0.2s ease-in-out;
+        }
+        .info-item a:hover {
+            color: #BFDBFE;
+        }
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .social-links a svg {
+            width: 2rem;
+            height: 2rem;
+            fill: #9CA3AF;
+            transition: fill 0.2s ease-in-out;
+        }
+        .social-links a:hover svg {
+            fill: #E5E7EB;
+        }
+
+        /* Media Query para móviles */
         @media (max-width: 640px) { 
             #app-container { padding: 1rem; justify-content: flex-start; } 
+            .logo-container:not(#main-logo-container) { display: none; } 
             .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
             #modal-next { right: 5px; }
             .lantern-corner-container { width: 12rem; height: 12rem; }
             .lantern { transform: scale(0.7); }
+            .event-info-container { margin-top: 1rem; padding: 1rem; }
+            .info-item { font-size: 1rem; text-align: center; }
         }
 
-        
+        /* Estilos y animaciones del fondo */
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
@@ -128,17 +174,16 @@
             position: absolute; 
             animation: float-sway 7s infinite ease-in-out;
             transform-origin: center center;
-            will-change: transform; /* OPTIMIZACIÓN */
+            will-change: transform; 
         }
         .star {
             position: absolute; 
             animation: twinkle linear infinite;
-            will-change: opacity, transform; /* OPTIMIZACIÓN */
+            will-change: opacity, transform;
         }
     </style>
 </head>
 <body>
-    <!-- SVG Filter para el brillo de las linternas (más eficiente) -->
     <svg style="position:absolute; width:0; height:0;">
         <defs>
             <filter id="lantern-glow">
@@ -211,7 +256,39 @@
     <div id="app-container">
         <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
         <div id="map-card"><div id="map-container"></div></div>
-        <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
+        
+        <div class="logo-container flex flex-col items-center">
+            <h4 class="text-gray-400 text-sm tracking-widest uppercase mb-4">Organizan</h4>
+            <div class="flex items-start justify-center gap-6 w-full">
+                <div class="w-1/2 flex flex-col items-center text-center gap-2">
+                    <img src="./sources/seinen.png" alt="Logo de Seinenbu" class="max-h-16">
+                    <p class="text-xs text-gray-400">@seinenbu.enc</p>
+                </div>
+                <div class="w-1/2 flex flex-col items-center text-center gap-2">
+                    <img src="./sources/aso.png" alt="Logo de la Asociación Japonesa" class="max-h-16">
+                    <p class="text-xs text-gray-400">@asociacionjaponesa.enc</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="event-info-container">
+            <div class="info-item">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span>9 de agosto - 19:00 hs</span>
+            </div>
+            <div class="info-item">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <a href="https://g.co/kgs/GC4XHkQ" target="_blank" rel="noopener noreferrer">Polideportivo de la Asociación Japonesa de Encarnación</a>
+            </div>
+            <div class="social-links">
+                <a href="https://www.instagram.com/seinenbu.enc" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Seinenbu">
+                    <svg viewBox="0 0 24 24"><path d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" /></svg>
+                </a>
+                <a href="https://www.instagram.com/asociacionjaponesa.enc" target="_blank" rel="noopener noreferrer" aria-label="Instagram de la Asociación Japonesa">
+                    <svg viewBox="0 0 24 24"><path d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" /></svg>
+                </a>
+            </div>
+        </div>
     </div>
 
     <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
@@ -457,7 +534,7 @@
             const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
             const infoSection = `<div class="min-h-[100px]"><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>`;
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">×</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
             modalPrevBtn.onclick = () => { buildVisitorModal((standIndex - 1 + sortedStands.length) % sortedStands.length); };
@@ -469,8 +546,8 @@
             const currentId = sortedStands[standIndex].id;
             const stand = standsData.get(currentId);
             if (!stand) return;
-            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
-            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
+            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">×</button></div>`).join('') : '';
+            modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">×</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
             
             document.getElementById('save-stand-changes').onclick = () => {
                 const updatedData = { status: document.getElementById('stand-status').value, owner: document.getElementById('stand-owner').value, mainProduct: document.getElementById('stand-product').value, info: document.getElementById('stand-info').value, };
