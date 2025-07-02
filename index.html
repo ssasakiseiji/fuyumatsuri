@@ -14,13 +14,6 @@
             margin: 0;
             background-color: #0f172a; 
         }
-        #scroll-wrapper { 
-            height: 100vh; 
-            overflow-y: auto; 
-            width: 100%; 
-            position: relative;
-            z-index: 20;
-        }
         #app-container { 
             display: flex; 
             flex-direction: column; 
@@ -28,7 +21,9 @@
             width: 100%; 
             padding: 1rem; 
             box-sizing: border-box; 
-            min-height: 100%;
+            min-height: 100vh;
+            position: relative;
+            z-index: 20;
         }
         #admin-controls {
             position: fixed; top: 1rem; left: 1rem;
@@ -109,19 +104,19 @@
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
         
-       
+        /* Media Query para móviles */
         @media (max-width: 640px) { 
-            #scroll-wrapper { display: flex; align-items: center; } 
-            #app-container { padding: 1rem 0; } 
+            #app-container { padding: 1rem; justify-content: flex-start; } 
+            .logo-container:not(#main-logo-container) { display: none; } /* Oculta solo el logo de abajo */
             .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
             #modal-next { right: 5px; }
-            
-            .lantern { transform: scale(0.6); }
+            .lantern-corner-container { width: 12rem; height: 12rem; }
+            .lantern { transform: scale(0.7); } /* Reduce el tamaño de las linternas en móvil */
         }
 
-       
+        /* Estilos y animaciones del fondo */
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
@@ -134,16 +129,17 @@
             position: absolute; 
             animation: float-sway 7s infinite ease-in-out;
             transform-origin: center center;
-            will-change: transform; 
+            will-change: transform; /* OPTIMIZACIÓN */
         }
         .star {
             position: absolute; 
             animation: twinkle linear infinite;
-            will-change: opacity, transform;
+            will-change: opacity, transform; /* OPTIMIZACIÓN */
         }
     </style>
 </head>
 <body>
+    <!-- SVG Filter para el brillo de las linternas (más eficiente) -->
     <svg style="position:absolute; width:0; height:0;">
         <defs>
             <filter id="lantern-glow">
@@ -159,7 +155,7 @@
     <div id="background-container" class="fixed inset-0 z-[-10] overflow-hidden bg-gray-900">
         <div id="star-container" class="absolute inset-0 pointer-events-none"></div>
         <div class="absolute top-0 left-0 right-0 h-64">
-            <div class="absolute top-0 left-0 w-64 h-64 md:w-96 md:h-96">
+            <div class="lantern-corner-container absolute top-0 left-0 w-64 h-64 md:w-96 md:h-96">
                 <div class="relative w-full h-full">
                     <div class="lantern top-[10%] left-[5%]" style="animation-delay: 0.5s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                     <div class="lantern top-[25%] left-[30%]" style="animation-delay: 1.8s;"><svg class="w-16 h-20 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
@@ -168,7 +164,7 @@
                     <div class="lantern top-[35%] left-[5%]" style="animation-delay: 3.1s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                 </div>
             </div>
-            <div class="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96">
+            <div class="lantern-corner-container absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96">
                 <div class="relative w-full h-full">
                     <div class="lantern top-[15%] right-[10%]" style="animation-delay: 0s;"><svg class="w-20 h-24 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                     <div class="lantern top-[38%] right-[30%]" style="animation-delay: 0.8s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
@@ -189,36 +185,34 @@
         </div>
     </div>
 
-    <div id="scroll-wrapper">
-        <div id="admin-controls" class="w-56">
-            <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
-            <div class="space-y-3">
-                <button id="position-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Posición</button>
-                <button id="info-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Información</button>
-            </div>
-            <hr class="my-4 border-gray-600">
-            <div id="show-hidden-container" class="mt-3 flex items-center hidden">
-                <input type="checkbox" id="show-hidden-toggle" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                <label for="show-hidden-toggle" class="ml-2 block text-sm text-gray-300">Mostrar Ocultos</label>
-            </div>
-            <div class="mt-3">
-                <label class="block text-sm font-medium text-gray-300 mb-1">Tamaño Global (%)</label>
-                <div class="flex items-center space-x-2">
-                    <input type="number" id="global-width" placeholder="Ancho" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="12">
-                    <input type="number" id="global-height" placeholder="Alto" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="8">
-                </div>
-                <button id="apply-global-size" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm">Aplicar</button>
-            </div>
-            <div class="mt-3">
-                <button id="reset-rotations" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-sm">Restablecer Rotación</button>
-            </div>
+    <div id="admin-controls" class="w-56">
+        <h3 class="text-white font-bold text-center mb-3">Modo Admin</h3>
+        <div class="space-y-3">
+            <button id="position-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Posición</button>
+            <button id="info-mode-toggle" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">Editar Información</button>
         </div>
+        <hr class="my-4 border-gray-600">
+        <div id="show-hidden-container" class="mt-3 flex items-center hidden">
+            <input type="checkbox" id="show-hidden-toggle" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            <label for="show-hidden-toggle" class="ml-2 block text-sm text-gray-300">Mostrar Ocultos</label>
+        </div>
+        <div class="mt-3">
+            <label class="block text-sm font-medium text-gray-300 mb-1">Tamaño Global (%)</label>
+            <div class="flex items-center space-x-2">
+                <input type="number" id="global-width" placeholder="Ancho" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="12">
+                <input type="number" id="global-height" placeholder="Alto" class="w-full bg-gray-700 text-white rounded p-1 text-sm" value="8">
+            </div>
+            <button id="apply-global-size" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm">Aplicar</button>
+        </div>
+        <div class="mt-3">
+            <button id="reset-rotations" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-sm">Restablecer Rotación</button>
+        </div>
+    </div>
 
-        <div id="app-container">
-            <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
-            <div id="map-card"><div id="map-container"></div></div>
-            <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
-        </div>
+    <div id="app-container">
+        <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
+        <div id="map-card"><div id="map-container"></div></div>
+        <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
     </div>
 
     <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
