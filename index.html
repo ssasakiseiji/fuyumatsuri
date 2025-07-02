@@ -12,8 +12,6 @@
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
             margin: 0;
-            background-color: #000000;
-            overflow: hidden;
         }
         #background-overlay {
             position: fixed;
@@ -65,9 +63,8 @@
             z-index: 50;
             opacity: 0.7;
         }
-        /* CHANGE: Estilo para los stands ocultos cuando se muestran en modo edición */
         .hidden-visible {
-            background-color: rgba(139, 92, 246, 0.5); /* Violeta semi-transparente */
+            background-color: rgba(139, 92, 246, 0.5);
             border: 2px dashed #a78bfa;
         }
         .stand-tooltip {
@@ -265,9 +262,9 @@
 
         function renderAll() {
             mapContainer.innerHTML = '';
-            const standsToRender = (isPositionEditMode && showHidden)
-                ? standsData // Muestra todos si la opción está activa en modo edición
-                : standsData.filter(s => s.status !== 'hidden'); // Oculta los 'hidden' por defecto
+            const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
+                ? standsData
+                : standsData.filter(s => s.status !== 'hidden');
 
             sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
             sortedStands.forEach(renderStand);
@@ -277,14 +274,16 @@
             const el = document.createElement('div');
             let statusClass = stand.status === 'occupied' ? 'occupied' : 'available';
             if (stand.status === 'hidden') {
-                statusClass = 'hidden-visible'; // Clase especial para cuando se muestran los ocultos
+                statusClass = 'hidden-visible';
             }
             el.className = `stand ${statusClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
             el.style.cssText = `top:${stand.top}%; left:${stand.left}%; width:${stand.width}%; height:${stand.height}%; transform:translate(-50%,-50%) rotate(${stand.rotation||0}deg)`;
             el.dataset.id = stand.id;
             el.textContent = stand.displayId || stand.id;
             
-            if (!isPositionEditMode) {
+            const clickEnabled = !isPositionEditMode || (isPositionEditMode && isInfoEditMode);
+
+            if (clickEnabled) {
                 let wasLongPress = false;
                 el.addEventListener('click', (e) => {
                     if (wasLongPress) {
@@ -315,8 +314,9 @@
                     });
                     el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
                 }
-            } else {
-                el.style.pointerEvents = 'none'; 
+            }
+            
+            if (isPositionEditMode) {
                 makeEditable(el, stand);
             }
             mapContainer.appendChild(el);
@@ -420,8 +420,8 @@
         }
 
         function buildAdminModal(standIndex) {
-            // FIX: Busca en la lista completa de stands, no solo en los visibles
-            const stand = standsData.find(s => s.id === sortedStands[standIndex].id);
+            const currentId = sortedStands[standIndex].id;
+            const stand = standsData.find(s => s.id === currentId);
             if (!stand) return;
             const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
@@ -491,7 +491,7 @@
             isPositionEditMode = !isPositionEditMode;
             positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode);
             positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
-            showHiddenContainer.classList.toggle('hidden', !isPositionEditMode);
+            showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
             if (!isPositionEditMode) {
                 showHiddenToggle.checked = false;
                 showHidden = false;
@@ -504,12 +504,17 @@
             isInfoEditMode = !isInfoEditMode;
             infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode);
             infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
+            showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
+            if (!isInfoEditMode) {
+                showHiddenToggle.checked = false;
+                showHidden = false;
+            }
+            renderAll();
         }
 
         async function main() {
             try {
                 onSnapshot(collection(db, "fuyumatsuri-stands"), (snapshot) => {
-                    // No se necesita inicializar datos si ya existen en la BD
                     standsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderAll();
                 });
