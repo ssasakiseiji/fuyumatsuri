@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Stands del Evento</title>
+    <title>Fuyumatsuri</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -103,7 +103,7 @@
         .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
-
+        
         .event-info-container {
             display: flex;
             flex-direction: column;
@@ -134,16 +134,27 @@
         }
         .social-links {
             display: flex;
-            gap: 1.5rem;
+            flex-direction: column;
+            align-items: flex-start; 
+            gap: 0.75rem; 
+            width: 100%;
+            padding-left: 20%;
         }
-        .social-links a svg {
-            width: 2rem;
-            height: 2rem;
-            fill: #9CA3AF;
-            transition: fill 0.2s ease-in-out;
+        .social-link-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: #9CA3AF;
+            transition: color 0.2s ease-in-out;
         }
-        .social-links a:hover svg {
-            fill: #E5E7EB;
+        .social-link-item:hover {
+            color: #E5E7EB;
+        }
+        .social-link-item svg {
+            width: 1.5rem; 
+            height: 1.5rem;
+            fill: currentColor;
         }
 
         @media (max-width: 640px) { 
@@ -156,6 +167,7 @@
             .lantern { transform: scale(0.7); }
             .event-info-container { margin-top: 1rem; padding: 1rem; }
             .info-item { font-size: 1rem; text-align: center; }
+            .social-links { align-items: center; padding-left: 0; }
         }
 
         @keyframes float-sway {
@@ -255,14 +267,12 @@
         
         <div class="logo-container flex flex-col items-center">
             <h4 class="text-gray-400 text-sm tracking-widest uppercase mb-4">Organizan</h4>
-            <div class="flex items-start justify-center gap-6 w-full">
-                <div class="w-1/2 flex flex-col items-center text-center gap-2">
-                    <img src="./sources/seinen.png" alt="Logo de Seinenbu" class="max-h-16">
-                    <p class="text-xs text-gray-400">@seinenbu.enc</p>
+            <div class="flex items-center justify-center gap-6 w-full">
+                <div class="w-1/2 flex justify-center">
+                    <img src="./sources/seinen.png" alt="Logo de Seinenbu" class="max-h-24">
                 </div>
-                <div class="w-1/2 flex flex-col items-center text-center gap-2">
-                    <img src="./sources/aso.png" alt="Logo de la Asociación Japonesa" class="max-h-16">
-                    <p class="text-xs text-gray-400">@asociacionjaponesa.enc</p>
+                <div class="w-1/2 flex justify-center">
+                    <img src="./sources/aso.png" alt="Logo de la Asociación Japonesa" class="max-h-24">
                 </div>
             </div>
         </div>
@@ -274,14 +284,16 @@
             </div>
             <div class="info-item">
                 <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <a href="https://g.co/kgs/GC4XHkQ" target="_blank" rel="noopener noreferrer">Polideportivo de la Asociación Japonesa de Encarnación</a>
+                <a href="https://maps.app.goo.gl/X8Du1kmkdnEAVUyf9" target="_blank" rel="noopener noreferrer">Asociación Japonesa de Encarnación</a>
             </div>
             <div class="social-links">
-                <a href="https://www.instagram.com/seinenbu.enc" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Seinenbu">
+                <a href="https://www.instagram.com/seinenbu.enc" target="_blank" rel="noopener noreferrer" class="social-link-item">
                     <svg viewBox="0 0 24 24"><path d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" /></svg>
+                    <span>@seinenbu.enc</span>
                 </a>
-                <a href="https://www.instagram.com/asociacionjaponesa.enc" target="_blank" rel="noopener noreferrer" aria-label="Instagram de la Asociación Japonesa">
+                <a href="https://www.instagram.com/asociacionjaponesa.enc" target="_blank" rel="noopener noreferrer" class="social-link-item">
                     <svg viewBox="0 0 24 24"><path d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" /></svg>
+                    <span>@asociacionjaponesa.enc</span>
                 </a>
             </div>
         </div>
