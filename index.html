@@ -15,7 +15,6 @@
         body {
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
-            /* FIX: Ajuste de fondo para cubrir y no repetir */
             background-image: url('./sources/fondo.jpg');
             background-size: cover;
             background-position: center center;
@@ -30,8 +29,7 @@
             z-index: 100; display: none;
         }
         .logo-container { width: 100%; max-width: 450px; padding: 1rem 0; display: flex; justify-content: center; }
-        /* CHANGE: Tamaño del logo principal aumentado */
-        #main-logo-container img { max-width: 80%; height: auto; }
+        #main-logo-container img { max-width: 80%; opacity : 1; height: auto; }
         .logo-container img { max-width: 60%; height: auto; }
         #map-card {
             background-image: url('./sources/mapa.png');
@@ -107,7 +105,6 @@
             background-color: rgba(255,255,255,0.1); border-radius: 50%;
             width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
             font-size: 1.5rem; cursor: pointer; transition: background-color 0.2s;
-            /* FIX: Asegurar que las flechas estén siempre visibles */
             z-index: 150;
         }
         .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
@@ -139,14 +136,13 @@
     </div>
 
     <div id="app-container">
-        <!-- CHANGE: ID añadido para el logo principal -->
         <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
         <div id="map-card"><div id="map-container"></div></div>
         <div class="logo-container"><img src="./sources/seinen.png" alt="Logo de la Organización"></div>
     </div>
 
     <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
-        <!-- FIX: Contenedor de las flechas y el contenido para asegurar el z-index correcto -->
+
         <div class="relative w-full max-w-lg">
             <button id="modal-prev" class="modal-nav">&lt;</button>
             <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
