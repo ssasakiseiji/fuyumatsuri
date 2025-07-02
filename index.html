@@ -7,38 +7,35 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        html, body {
+        html {
             height: 100%;
-            margin: 0;
-            padding: 0;
         }
         body {
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
+            margin: 0;
         }
-       
         #background-overlay {
             position: fixed;
+            height: 100vh;
+            width: 100vw;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
             background-image: url('./sources/fondo.jpg');
             background-size: cover;
             background-position: center center;
-            background-attachment: fixed; 
             background-repeat: no-repeat;
-            z-index: -1; 
+            z-index: -1;
         }
-        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 1rem; min-height: 100%; }
+        #app-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 1rem; min-height: 100vh; box-sizing: border-box; }
         #admin-controls {
             position: fixed; top: 1rem; left: 1rem;
             background-color: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px);
             padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(55, 65, 81, 0.5);
             z-index: 100; display: none;
         }
-        .logo-container { width: 90%; max-width: 450px; padding: 1rem 0; display: flex; justify-content: center; }
-        #main-logo-container img { max-width: 90%; height: auto; }
+        .logo-container { width: 100%; max-width: 450px; padding: 1rem 0; display: flex; justify-content: center; }
+        #main-logo-container img { max-width: 90%; height: auto; opacity: 1; }
         .logo-container img { max-width: 60%; height: auto; }
         #map-card {
             background-image: url('./sources/mapa.png');
@@ -122,7 +119,6 @@
     </style>
 </head>
 <body>
-    <!-- Contenedor para el fondo estático -->
     <div id="background-overlay"></div>
 
     <div id="admin-controls" class="w-56">
@@ -209,7 +205,8 @@
         let longPressTimer;
         let sortedStands = [];
 
-        const initialStandsData = Array.from({ length: 33 }, (_, i) => {
+        // CHANGE: Se crean solo 25 stands
+        const initialStandsData = Array.from({ length: 25 }, (_, i) => {
             const id = i + 1;
             const standsPerRow = 5;
             const row = Math.floor(i / standsPerRow);
@@ -468,6 +465,7 @@
         function updateLightboxImage() {
             lightboxImage.src = currentLightboxImages[currentLightboxIndex];
         }
+
 
         function changeLightboxImage(direction) {
             currentLightboxIndex += direction;
