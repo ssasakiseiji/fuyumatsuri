@@ -12,7 +12,7 @@
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
             margin: 0;
-            background-color: #0f172a; /* Color de fondo base */
+            background-color: #0f172a;
         }
         #scroll-wrapper { 
             height: 100vh; 
@@ -52,7 +52,7 @@
         .stand {
             position: absolute; display: flex; justify-content: center; align-items: center;
             color: white; font-weight: bold;
-            font-size: 0.9vw; /* Tamaño de fuente reducido */
+            font-size: 0.8vw;
             border-radius: 6px; transition: all 0.2s ease-in-out;
             border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
             transform-origin: center center;
@@ -110,19 +110,16 @@
         #modal-next { right: -50px; }
         
         @media (max-width: 640px) { 
-            .stand { font-size: 1.8vw; } /* Tamaño de fuente más pequeño en móvil */
+            .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
             #modal-next { right: 5px; }
-            #app-container { justify-content: center; }
+            #app-container { justify-content: center; padding: 0; }
             .logo-container { display: none; }
+            #map-card { max-width: 100%; height: 100%; width: auto; }
         }
 
-        /* Estilos y animaciones del fondo */
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.5); }
-            50% { box-shadow: 0 0 22px 6px rgba(239, 68, 68, 0.7); }
-        }
+ 
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
@@ -132,34 +129,50 @@
             50% { opacity: 0.8; transform: scale(1) rotate(5deg); }
         }
         .lantern {
-            position: absolute; animation: glow 4s infinite ease-in-out, float-sway 7s infinite ease-in-out;
+            position: absolute; 
+            animation: float-sway 7s infinite ease-in-out;
             transform-origin: center center;
+            will-change: transform; 
         }
         .star {
-            position: absolute; animation: twinkle linear infinite;
+            position: absolute; 
+            animation: twinkle linear infinite;
+            will-change: opacity, transform;
         }
     </style>
 </head>
 <body>
+    <svg style="position:absolute; width:0; height:0;">
+        <defs>
+            <filter id="lantern-glow">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+    </svg>
+
     <div id="background-container" class="fixed inset-0 z-[-10] overflow-hidden bg-gray-900">
         <div id="star-container" class="absolute inset-0 pointer-events-none"></div>
         <div class="absolute top-0 left-0 right-0 h-64">
             <div class="absolute top-0 left-0 w-64 h-64 md:w-96 md:h-96">
                 <div class="relative w-full h-full">
-                    <div class="lantern top-[10%] left-[5%]" style="animation-delay: 0.5s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[25%] left-[30%]" style="animation-delay: 1.8s;"><svg class="w-16 h-20 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[45%] left-[15%]" style="animation-delay: 1.2s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[50%] left-[40%]" style="animation-delay: 2.5s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[35%] left-[5%]" style="animation-delay: 3.1s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[10%] left-[5%]" style="animation-delay: 0.5s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[25%] left-[30%]" style="animation-delay: 1.8s;"><svg class="w-16 h-20 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[45%] left-[15%]" style="animation-delay: 1.2s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[50%] left-[40%]" style="animation-delay: 2.5s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[35%] left-[5%]" style="animation-delay: 3.1s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                 </div>
             </div>
             <div class="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96">
                 <div class="relative w-full h-full">
-                    <div class="lantern top-[15%] right-[10%]" style="animation-delay: 0s;"><svg class="w-20 h-24 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[38%] right-[30%]" style="animation-delay: 0.8s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[55%] right-[15%]" style="animation-delay: 2.2s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[10%] right-[45%]" style="animation-delay: 1.5s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
-                    <div class="lantern top-[60%] right-[40%]" style="animation-delay: 3.5s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[15%] right-[10%]" style="animation-delay: 0s;"><svg class="w-20 h-24 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[38%] right-[30%]" style="animation-delay: 0.8s;"><svg class="w-14 h-16 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[55%] right-[15%]" style="animation-delay: 2.2s;"><svg class="w-12 h-14 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[10%] right-[45%]" style="animation-delay: 1.5s;"><svg class="w-10 h-12 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
+                    <div class="lantern top-[60%] right-[40%]" style="animation-delay: 3.5s;"><svg class="w-8 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor" filter="url(#lantern-glow)"><path d="M16 6c0-2.21-1.79-4-4-4S8 3.79 8 6v1h8V6zM8 9v10c0 2.21 1.79 4 4 4s4-1.79 4-4V9H8z"/></svg></div>
                 </div>
             </div>
         </div>
@@ -321,18 +334,15 @@
                 mapContainer.appendChild(el);
             }
 
-            // Actualiza clases y estilos
             const statusClass = standData.status === 'occupied' ? 'occupied' : 'available';
             const hiddenClass = standData.status === 'hidden' ? 'hidden-visible' : '';
             el.className = `stand ${statusClass} ${hiddenClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
             el.style.cssText = `top:${standData.top}%; left:${standData.left}%; width:${standData.width}%; height:${standData.height}%; transform:translate(-50%,-50%) rotate(${standData.rotation||0}deg)`;
             el.textContent = standData.displayId || standData.id;
             
-            // Elimina listeners antiguos para evitar duplicados
             el.replaceWith(el.cloneNode(true));
             el = mapContainer.querySelector(`.stand[data-id='${standData.id}']`);
 
-            // Añade listeners nuevos
             const clickEnabled = !isPositionEditMode || (isPositionEditMode && isInfoEditMode);
             if (clickEnabled) {
                 addStandListeners(el, standData);
@@ -341,7 +351,6 @@
                 makeEditable(el, standData);
             }
 
-            // Oculta/muestra el stand según el modo
              const shouldBeVisible = !(standData.status === 'hidden' && !(isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden));
              el.style.display = shouldBeVisible ? 'flex' : 'none';
         }
@@ -592,19 +601,14 @@
                 onSnapshot(collection(db, "fuyumatsuri-stands"), (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         const standData = { id: change.doc.id, ...change.doc.data() };
-                        if (change.type === "added") {
+                        if (change.type === "added" || change.type === "modified") {
                             standsData.set(standData.id, standData);
                             updateStandOnMap(standData);
-                        }
-                        if (change.type === "modified") {
-                            standsData.set(standData.id, standData);
-                            updateStandOnMap(standData);
-                            // Refresca el modal si el stand modificado es el que está abierto
                             if (activeModalStandId === standData.id) {
                                 const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
-                                if (document.getElementById('save-stand-changes')) { // Si es el modal de admin
+                                if (document.getElementById('save-stand-changes')) {
                                     buildAdminModal(currentStandIndex);
-                                } else { // Si es el modal de visitante
+                                } else {
                                     buildVisitorModal(currentStandIndex);
                                 }
                             }
@@ -614,7 +618,6 @@
                             removeStandFromMap(standData.id);
                         }
                     });
-                     // Re-calcula el array ordenado para la navegación del modal
                     const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
                         ? Array.from(standsData.values())
                         : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
@@ -646,14 +649,13 @@
         main();
     </script>
 
-    <!-- Script para generar el fondo animado -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const starContainer = document.getElementById('star-container');
             const isMobile = window.innerWidth < 768;
 
             const starColors = ['#FFFFFF', '#FFFACD', '#FFDFD3'];
-            const numberOfStars = isMobile ? 40 : 80; // Cantidad reducida
+            const numberOfStars = isMobile ? 30 : 60; 
             for (let i = 0; i < numberOfStars; i++) {
                 const star = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 const size = Math.random() * 5 + 2;
@@ -670,11 +672,12 @@
                 star.style.left = `${left}vw`;
                 star.style.animationDuration = `${duration}s`;
                 star.style.animationDelay = `${delay}s`;
-                star.style.filter = 'drop-shadow(0 0 6px ' + starColors[i % starColors.length] + ')';
 
                 const starPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 starPath.setAttribute('d', 'M10 0 L12.24 7.76 L20 10 L12.24 12.24 L10 20 L7.76 12.24 L0 10 L7.76 7.76 Z');
-                starPath.setAttribute('fill', starColors[i % starColors.length]);
+                const color = starColors[i % starColors.length];
+                starPath.setAttribute('fill', color);
+                starPath.style.filter = `drop-shadow(0 0 6px ${color})`;
                 
                 star.appendChild(starPath);
                 starContainer.appendChild(star);
