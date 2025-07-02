@@ -12,7 +12,7 @@
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
             margin: 0;
-            background-color: #0f172a;
+            background-color: #0f172a; 
         }
         #scroll-wrapper { 
             height: 100vh; 
@@ -52,7 +52,7 @@
         .stand {
             position: absolute; display: flex; justify-content: center; align-items: center;
             color: white; font-weight: bold;
-            font-size: 0.8vw;
+            font-size: 0.9vw; /* Tamaño de fuente reducido */
             border-radius: 6px; transition: all 0.2s ease-in-out;
             border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
             transform-origin: center center;
@@ -109,17 +109,19 @@
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
         
+       
         @media (max-width: 640px) { 
+            #scroll-wrapper { display: flex; align-items: center; } 
+            #app-container { padding: 1rem 0; } 
             .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
             #modal-next { right: 5px; }
-            #app-container { justify-content: center; padding: 0; }
-            .logo-container { display: none; }
-            #map-card { max-width: 100%; height: 100%; width: auto; }
+            
+            .lantern { transform: scale(0.6); }
         }
 
- 
+       
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
@@ -274,7 +276,7 @@
         const lightboxNext = document.getElementById('lightbox-next');
         
         let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false, showHidden = false;
-        let standsData = new Map(); // OPTIMIZACIÓN: Usar un Map para acceso rápido
+        let standsData = new Map();
         let currentLightboxImages = [], currentLightboxIndex = 0;
         let longPressTimer;
         let sortedStands = [];
@@ -323,12 +325,10 @@
             });
             await batch.commit();
         }
-
-        // --- INICIO DE LÓGICA DE RENDERIZADO OPTIMIZADA ---
-
+        
         function updateStandOnMap(standData) {
             let el = mapContainer.querySelector(`.stand[data-id='${standData.id}']`);
-            if (!el) { // Si el stand no existe, lo crea
+            if (!el) {
                 el = document.createElement('div');
                 el.dataset.id = standData.id;
                 mapContainer.appendChild(el);
@@ -358,11 +358,9 @@
         function addStandListeners(el, stand) {
             let wasLongPress = false;
             el.addEventListener('click', (e) => {
-                if (wasLongPress) {
-                    e.preventDefault();
-                    return;
-                }
+                if (wasLongPress) { e.preventDefault(); return; }
                 const standIndex = sortedStands.findIndex(s => s.id === stand.id);
+                if (standIndex === -1) return;
                 (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
             });
 
@@ -374,7 +372,6 @@
                     el.appendChild(tooltip);
                 }
                 tooltip.textContent = stand.mainProduct;
-
                 el.addEventListener('contextmenu', e => e.preventDefault());
                 el.addEventListener('touchstart', (e) => {
                     wasLongPress = false;
@@ -383,10 +380,7 @@
                         el.classList.add('show-tooltip');
                     }, 500);
                 }, { passive: true });
-                el.addEventListener('touchend', () => {
-                    clearTimeout(longPressTimer);
-                    setTimeout(() => el.classList.remove('show-tooltip'), 200);
-                });
+                el.addEventListener('touchend', () => { clearTimeout(longPressTimer); setTimeout(() => el.classList.remove('show-tooltip'), 200); });
                 el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
             }
         }
@@ -395,8 +389,6 @@
             const el = mapContainer.querySelector(`.stand[data-id='${standId}']`);
             if (el) el.remove();
         }
-        
-        // --- FIN DE LÓGICA DE RENDERIZADO OPTIMIZADA ---
         
         function makeEditable(element, dataObject) {
             element.style.pointerEvents = 'auto'; 
@@ -409,59 +401,48 @@
                     element.style.top = `${(e_move.clientY - mapRect.top) / mapRect.height * 100}%`;
                 };
                 const onMouseUp = e_up => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
                     const newLeft = (e_up.clientX - mapRect.left) / mapRect.width * 100;
                     const newTop = (e_up.clientY - mapRect.top) / mapRect.height * 100;
                     updateFirestoreDoc(dataObject.id, { top: newTop, left: newLeft });
                 };
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             };
-
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'handle resize-handle';
             element.appendChild(resizeHandle);
             resizeHandle.onmousedown = e_resize => {
                 e_resize.stopPropagation();
                 const mapRect = mapContainer.getBoundingClientRect();
-                const startX = e_resize.clientX, startY = e_resize.clientY;
-                const startWidth = element.offsetWidth, startHeight = element.offsetHeight;
+                const startX = e_resize.clientX, startY = e_resize.clientY, startWidth = element.offsetWidth, startHeight = element.offsetHeight;
                 const onMouseMove = e_move => {
                     element.style.width = `${(startWidth + e_move.clientX - startX) / mapRect.width * 100}%`;
                     element.style.height = `${(startHeight + e_move.clientY - startY) / mapRect.height * 100}%`;
                 };
                 const onMouseUp = e_up => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
                     const newWidth = (startWidth + e_up.clientX - startX) / mapRect.width * 100;
                     const newHeight = (startHeight + e_up.clientY - startY) / mapRect.height * 100;
                     updateFirestoreDoc(dataObject.id, { width: newWidth, height: newHeight });
                 };
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             };
-            
             const rotateHandle = document.createElement('div');
             rotateHandle.className = 'handle rotate-handle';
             element.appendChild(rotateHandle);
             rotateHandle.onmousedown = e_rotate => {
                 e_rotate.stopPropagation();
-                const rect = element.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
+                const rect = element.getBoundingClientRect(), centerX = rect.left + rect.width / 2, centerY = rect.top + rect.height / 2;
                 const onMouseMove = e_move => {
                     const angle = Math.atan2(e_move.clientY - centerY, e_move.clientX - centerX) * (180 / Math.PI) + 90;
                     element.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
                 };
                 const onMouseUp = e_up => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
                     const angle = Math.atan2(e_up.clientY - centerY, e_up.clientX - centerX) * (180 / Math.PI) + 90;
                     updateFirestoreDoc(dataObject.id, { rotation: angle });
                 };
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             };
         }
         
@@ -479,27 +460,15 @@
         function buildVisitorModal(standIndex) {
             const stand = sortedStands[standIndex];
             if (!stand) return;
-            const galleryContent = stand.gallery && stand.gallery.length > 0
-                ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>`
-                : '';
-            
+            const galleryContent = stand.gallery && stand.gallery.length > 0 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>` : '';
             const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
-            
             const infoSection = `<div class="min-h-[100px]"><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>`;
-
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
-            
-            modalPrevBtn.onclick = () => {
-                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
-                buildVisitorModal(newIndex);
-            };
-            modalNextBtn.onclick = () => {
-                const newIndex = (standIndex + 1) % sortedStands.length;
-                buildVisitorModal(newIndex);
-            };
+            modalPrevBtn.onclick = () => { buildVisitorModal((standIndex - 1 + sortedStands.length) % sortedStands.length); };
+            modalNextBtn.onclick = () => { buildVisitorModal((standIndex + 1) % sortedStands.length); };
             showModal(stand.id);
         }
 
@@ -511,88 +480,41 @@
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
             
             document.getElementById('save-stand-changes').onclick = () => {
-                const updatedData = {
-                    status: document.getElementById('stand-status').value,
-                    owner: document.getElementById('stand-owner').value,
-                    mainProduct: document.getElementById('stand-product').value,
-                    info: document.getElementById('stand-info').value,
-                };
+                const updatedData = { status: document.getElementById('stand-status').value, owner: document.getElementById('stand-owner').value, mainProduct: document.getElementById('stand-product').value, info: document.getElementById('stand-info').value, };
                 updateFirestoreDoc(stand.id, updatedData).then(hideModal);
             };
-
             document.getElementById('add-image').onchange = e => {
                 if (e.target.files[0]) {
                     const reader = new FileReader();
-                    reader.onload = re => {
-                        const newGallery = [...(stand.gallery || []), re.target.result];
-                        updateFirestoreDoc(stand.id, { gallery: newGallery });
-                    };
+                    reader.onload = re => { updateFirestoreDoc(stand.id, { gallery: [...(stand.gallery || []), re.target.result] }); };
                     reader.readAsDataURL(e.target.files[0]);
                 }
             };
-            
             modalContent.querySelectorAll('.delete-img-btn').forEach(btn => {
-                btn.onclick = () => {
-                    const newGallery = stand.gallery.filter((_, i) => i !== parseInt(btn.dataset.index));
-                    updateFirestoreDoc(stand.id, { gallery: newGallery });
-                };
+                btn.onclick = () => { updateFirestoreDoc(stand.id, { gallery: stand.gallery.filter((_, i) => i !== parseInt(btn.dataset.index)) }); };
             });
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
-            
-            modalPrevBtn.onclick = () => {
-                const newIndex = (standIndex - 1 + sortedStands.length) % sortedStands.length;
-                buildAdminModal(newIndex);
-            };
-            modalNextBtn.onclick = () => {
-                const newIndex = (standIndex + 1) % sortedStands.length;
-                buildAdminModal(newIndex);
-            };
+            modalPrevBtn.onclick = () => { buildAdminModal((standIndex - 1 + sortedStands.length) % sortedStands.length); };
+            modalNextBtn.onclick = () => { buildAdminModal((standIndex + 1) % sortedStands.length); };
             showModal(stand.id);
         }
 
-        function openLightbox(images, index) {
-            currentLightboxImages = images;
-            currentLightboxIndex = index;
-            lightbox.classList.remove('hidden');
-            updateLightboxImage();
-        }
-
-        function updateLightboxImage() {
-            lightboxImage.src = currentLightboxImages[currentLightboxIndex];
-        }
-
-        function changeLightboxImage(direction) {
-            currentLightboxIndex += direction;
-            if (currentLightboxIndex < 0) {
-                currentLightboxIndex = currentLightboxImages.length - 1;
-            } else if (currentLightboxIndex >= currentLightboxImages.length) {
-                currentLightboxIndex = 0;
-            }
-            updateLightboxImage();
-        }
-        
+        function openLightbox(images, index) { currentLightboxImages = images; currentLightboxIndex = index; lightbox.classList.remove('hidden'); updateLightboxImage(); }
+        function updateLightboxImage() { lightboxImage.src = currentLightboxImages[currentLightboxIndex]; }
+        function changeLightboxImage(direction) { currentLightboxIndex = (currentLightboxIndex + direction + currentLightboxImages.length) % currentLightboxImages.length; updateLightboxImage(); }
         function togglePositionMode() {
             isPositionEditMode = !isPositionEditMode;
-            positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode);
-            positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
+            positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode); positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
             showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
-            if (!isPositionEditMode) {
-                showHiddenToggle.checked = false;
-                showHidden = false;
-            }
+            if (!isPositionEditMode) { showHiddenToggle.checked = false; showHidden = false; }
             mapCard.classList.toggle('position-edit-mode', isPositionEditMode);
             Array.from(standsData.values()).forEach(updateStandOnMap);
         }
-        
         function toggleInfoMode() {
             isInfoEditMode = !isInfoEditMode;
-            infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode);
-            infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
+            infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode); infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
             showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
-            if (!isInfoEditMode) {
-                showHiddenToggle.checked = false;
-                showHidden = false;
-            }
+            if (!isInfoEditMode) { showHiddenToggle.checked = false; showHidden = false; }
             Array.from(standsData.values()).forEach(updateStandOnMap);
         }
 
@@ -604,48 +526,36 @@
                         if (change.type === "added" || change.type === "modified") {
                             standsData.set(standData.id, standData);
                             updateStandOnMap(standData);
-                            if (activeModalStandId === standData.id) {
-                                const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
-                                if (document.getElementById('save-stand-changes')) {
-                                    buildAdminModal(currentStandIndex);
-                                } else {
-                                    buildVisitorModal(currentStandIndex);
-                                }
-                            }
                         }
                         if (change.type === "removed") {
                             standsData.delete(standData.id);
                             removeStandFromMap(standData.id);
                         }
                     });
-                    const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
-                        ? Array.from(standsData.values())
-                        : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
+                    const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden) ? Array.from(standsData.values()) : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
                     sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
+
+                    if (activeModalStandId && !infoModal.classList.contains('hidden')) {
+                        const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
+                        if (currentStandIndex !== -1) {
+                            if (document.getElementById('save-stand-changes')) { buildAdminModal(currentStandIndex); }
+                             else { buildVisitorModal(currentStandIndex); }
+                        } else { hideModal(); }
+                    }
                 });
-            } catch (error) {
-                console.error("Error en la inicialización:", error);
-            }
+            } catch (error) { console.error("Error en la inicialización:", error); }
         }
 
         positionModeToggle.addEventListener('click', togglePositionMode);
         infoModeToggle.addEventListener('click', toggleInfoMode);
-        showHiddenToggle.addEventListener('change', () => {
-            showHidden = showHiddenToggle.checked;
-            Array.from(standsData.values()).forEach(updateStandOnMap);
-        });
+        showHiddenToggle.addEventListener('change', () => { showHidden = showHiddenToggle.checked; Array.from(standsData.values()).forEach(updateStandOnMap); });
         applyGlobalSizeBtn.addEventListener('click', applyGlobalSize);
         resetRotationsBtn.addEventListener('click', resetAllRotations);
         infoModal.addEventListener('click', (e) => { if (e.target === infoModal) hideModal(); });
         document.getElementById('lightbox-close').onclick = () => lightbox.classList.add('hidden');
         lightboxPrev.onclick = () => changeLightboxImage(-1);
         lightboxNext.onclick = () => changeLightboxImage(1);
-        lightbox.addEventListener('click', (e) => {
-            if (e.target === lightbox) {
-                lightbox.classList.add('hidden');
-            }
-        });
-
+        lightbox.addEventListener('click', (e) => { if (e.target === lightbox) { lightbox.classList.add('hidden'); } });
         main();
     </script>
 
@@ -655,12 +565,16 @@
             const isMobile = window.innerWidth < 768;
 
             const starColors = ['#FFFFFF', '#FFFACD', '#FFDFD3'];
-            const numberOfStars = isMobile ? 30 : 60; 
+            const numberOfStars = isMobile ? 25 : 50; 
             for (let i = 0; i < numberOfStars; i++) {
                 const star = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                const size = Math.random() * 5 + 2;
-                const top = Math.random() * 100;
-                const left = Math.random() * 100;
+                const size = Math.random() * 4 + 1.5; 
+                
+               
+                const hMargin = 15; const vMargin = 15;
+                const left = Math.random() * (100 - hMargin * 2) + hMargin;
+                const top = Math.random() * (100 - vMargin * 2) + vMargin;
+                
                 const duration = Math.random() * 5 + 4;
                 const delay = Math.random() * 9;
                 
