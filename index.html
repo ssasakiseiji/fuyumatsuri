@@ -12,15 +12,14 @@
             font-family: 'Inter', sans-serif;
             color: #E5E7EB;
             margin: 0;
-            background-color: #0f172a; 
+            background-color: #0f172a; /* Color de fondo base */
         }
-       
         #scroll-wrapper { 
             height: 100vh; 
             overflow-y: auto; 
             width: 100%; 
             position: relative;
-            z-index: 20; 
+            z-index: 20;
         }
         #app-container { 
             display: flex; 
@@ -53,7 +52,7 @@
         .stand {
             position: absolute; display: flex; justify-content: center; align-items: center;
             color: white; font-weight: bold;
-            font-size: 1.2vw;
+            font-size: 0.9vw; /* Tamaño de fuente reducido */
             border-radius: 6px; transition: all 0.2s ease-in-out;
             border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10;
             transform-origin: center center;
@@ -109,12 +108,20 @@
         .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
-        @media (max-width: 640px) { .stand { font-size: 2.4vw; } .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} #modal-prev { left: 5px; } #modal-next { right: 5px; } }
+        
+        @media (max-width: 640px) { 
+            .stand { font-size: 1.8vw; } /* Tamaño de fuente más pequeño en móvil */
+            .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
+            #modal-prev { left: 5px; } 
+            #modal-next { right: 5px; }
+            #app-container { justify-content: center; }
+            .logo-container { display: none; }
+        }
 
         /* Estilos y animaciones del fondo */
         @keyframes glow {
-            0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8)); }
-            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 1)); }
+            0%, 100% { box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 22px 6px rgba(239, 68, 68, 0.7); }
         }
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
@@ -254,7 +261,7 @@
         const lightboxNext = document.getElementById('lightbox-next');
         
         let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false, showHidden = false;
-        let standsData = [];
+        let standsData = new Map(); // OPTIMIZACIÓN: Usar un Map para acceso rápido
         let currentLightboxImages = [], currentLightboxIndex = 0;
         let longPressTimer;
         let sortedStands = [];
@@ -304,67 +311,83 @@
             await batch.commit();
         }
 
-        function renderAll() {
-            mapContainer.innerHTML = '';
-            const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
-                ? standsData
-                : standsData.filter(s => s.status !== 'hidden');
+        // --- INICIO DE LÓGICA DE RENDERIZADO OPTIMIZADA ---
 
-            sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
-            sortedStands.forEach(renderStand);
-        }
-
-        function renderStand(stand) {
-            const el = document.createElement('div');
-            let statusClass = stand.status === 'occupied' ? 'occupied' : 'available';
-            if (stand.status === 'hidden') {
-                statusClass = 'hidden-visible';
+        function updateStandOnMap(standData) {
+            let el = mapContainer.querySelector(`.stand[data-id='${standData.id}']`);
+            if (!el) { // Si el stand no existe, lo crea
+                el = document.createElement('div');
+                el.dataset.id = standData.id;
+                mapContainer.appendChild(el);
             }
-            el.className = `stand ${statusClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
-            el.style.cssText = `top:${stand.top}%; left:${stand.left}%; width:${stand.width}%; height:${stand.height}%; transform:translate(-50%,-50%) rotate(${stand.rotation||0}deg)`;
-            el.dataset.id = stand.id;
-            el.textContent = stand.displayId || stand.id;
+
+            // Actualiza clases y estilos
+            const statusClass = standData.status === 'occupied' ? 'occupied' : 'available';
+            const hiddenClass = standData.status === 'hidden' ? 'hidden-visible' : '';
+            el.className = `stand ${statusClass} ${hiddenClass} ${isPositionEditMode ? 'position-edit-mode' : ''}`;
+            el.style.cssText = `top:${standData.top}%; left:${standData.left}%; width:${standData.width}%; height:${standData.height}%; transform:translate(-50%,-50%) rotate(${standData.rotation||0}deg)`;
+            el.textContent = standData.displayId || standData.id;
             
+            // Elimina listeners antiguos para evitar duplicados
+            el.replaceWith(el.cloneNode(true));
+            el = mapContainer.querySelector(`.stand[data-id='${standData.id}']`);
+
+            // Añade listeners nuevos
             const clickEnabled = !isPositionEditMode || (isPositionEditMode && isInfoEditMode);
-
             if (clickEnabled) {
-                let wasLongPress = false;
-                el.addEventListener('click', (e) => {
-                    if (wasLongPress) {
-                        e.preventDefault();
-                        return;
-                    }
-                    const standIndex = sortedStands.findIndex(s => s.id === stand.id);
-                    (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
-                });
-
-                if (stand.status === 'occupied' && stand.mainProduct) {
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'stand-tooltip';
-                    tooltip.textContent = stand.mainProduct;
-                    el.appendChild(tooltip);
-
-                    el.addEventListener('contextmenu', e => e.preventDefault());
-                    el.addEventListener('touchstart', (e) => {
-                        wasLongPress = false;
-                        longPressTimer = setTimeout(() => {
-                            wasLongPress = true;
-                            el.classList.add('show-tooltip');
-                        }, 500);
-                    }, { passive: true });
-                    el.addEventListener('touchend', () => {
-                        clearTimeout(longPressTimer);
-                        setTimeout(() => el.classList.remove('show-tooltip'), 200);
-                    });
-                    el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-                }
+                addStandListeners(el, standData);
             }
-            
             if (isPositionEditMode) {
-                makeEditable(el, stand);
+                makeEditable(el, standData);
             }
-            mapContainer.appendChild(el);
+
+            // Oculta/muestra el stand según el modo
+             const shouldBeVisible = !(standData.status === 'hidden' && !(isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden));
+             el.style.display = shouldBeVisible ? 'flex' : 'none';
         }
+
+        function addStandListeners(el, stand) {
+            let wasLongPress = false;
+            el.addEventListener('click', (e) => {
+                if (wasLongPress) {
+                    e.preventDefault();
+                    return;
+                }
+                const standIndex = sortedStands.findIndex(s => s.id === stand.id);
+                (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
+            });
+
+            if (stand.status === 'occupied' && stand.mainProduct) {
+                let tooltip = el.querySelector('.stand-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'stand-tooltip';
+                    el.appendChild(tooltip);
+                }
+                tooltip.textContent = stand.mainProduct;
+
+                el.addEventListener('contextmenu', e => e.preventDefault());
+                el.addEventListener('touchstart', (e) => {
+                    wasLongPress = false;
+                    longPressTimer = setTimeout(() => {
+                        wasLongPress = true;
+                        el.classList.add('show-tooltip');
+                    }, 500);
+                }, { passive: true });
+                el.addEventListener('touchend', () => {
+                    clearTimeout(longPressTimer);
+                    setTimeout(() => el.classList.remove('show-tooltip'), 200);
+                });
+                el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+            }
+        }
+
+        function removeStandFromMap(standId) {
+            const el = mapContainer.querySelector(`.stand[data-id='${standId}']`);
+            if (el) el.remove();
+        }
+        
+        // --- FIN DE LÓGICA DE RENDERIZADO OPTIMIZADA ---
         
         function makeEditable(element, dataObject) {
             element.style.pointerEvents = 'auto'; 
@@ -473,7 +496,7 @@
 
         function buildAdminModal(standIndex) {
             const currentId = sortedStands[standIndex].id;
-            const stand = standsData.find(s => s.id === currentId);
+            const stand = standsData.get(currentId);
             if (!stand) return;
             const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">&times;</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
@@ -549,7 +572,7 @@
                 showHidden = false;
             }
             mapCard.classList.toggle('position-edit-mode', isPositionEditMode);
-            renderAll();
+            Array.from(standsData.values()).forEach(updateStandOnMap);
         }
         
         function toggleInfoMode() {
@@ -561,26 +584,41 @@
                 showHiddenToggle.checked = false;
                 showHidden = false;
             }
-            renderAll();
+            Array.from(standsData.values()).forEach(updateStandOnMap);
         }
 
         async function main() {
             try {
                 onSnapshot(collection(db, "fuyumatsuri-stands"), (snapshot) => {
-                    standsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderAll();
-                    
-                    if (activeModalStandId && !infoModal.classList.contains('hidden')) {
-                        const standToUpdate = standsData.find(s => s.id === activeModalStandId);
-                        if (standToUpdate) {
-                            const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
-                            if (document.getElementById('save-stand-changes')) {
-                                buildAdminModal(currentStandIndex);
-                            }
-                        } else {
-                           hideModal();
+                    snapshot.docChanges().forEach((change) => {
+                        const standData = { id: change.doc.id, ...change.doc.data() };
+                        if (change.type === "added") {
+                            standsData.set(standData.id, standData);
+                            updateStandOnMap(standData);
                         }
-                    }
+                        if (change.type === "modified") {
+                            standsData.set(standData.id, standData);
+                            updateStandOnMap(standData);
+                            // Refresca el modal si el stand modificado es el que está abierto
+                            if (activeModalStandId === standData.id) {
+                                const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
+                                if (document.getElementById('save-stand-changes')) { // Si es el modal de admin
+                                    buildAdminModal(currentStandIndex);
+                                } else { // Si es el modal de visitante
+                                    buildVisitorModal(currentStandIndex);
+                                }
+                            }
+                        }
+                        if (change.type === "removed") {
+                            standsData.delete(standData.id);
+                            removeStandFromMap(standData.id);
+                        }
+                    });
+                     // Re-calcula el array ordenado para la navegación del modal
+                    const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden)
+                        ? Array.from(standsData.values())
+                        : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
+                    sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
                 });
             } catch (error) {
                 console.error("Error en la inicialización:", error);
@@ -591,7 +629,7 @@
         infoModeToggle.addEventListener('click', toggleInfoMode);
         showHiddenToggle.addEventListener('change', () => {
             showHidden = showHiddenToggle.checked;
-            renderAll();
+            Array.from(standsData.values()).forEach(updateStandOnMap);
         });
         applyGlobalSizeBtn.addEventListener('click', applyGlobalSize);
         resetRotationsBtn.addEventListener('click', resetAllRotations);
@@ -608,13 +646,14 @@
         main();
     </script>
 
+    <!-- Script para generar el fondo animado -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const starContainer = document.getElementById('star-container');
             const isMobile = window.innerWidth < 768;
 
             const starColors = ['#FFFFFF', '#FFFACD', '#FFDFD3'];
-            const numberOfStars = isMobile ? 60 : 120;
+            const numberOfStars = isMobile ? 40 : 80; // Cantidad reducida
             for (let i = 0; i < numberOfStars; i++) {
                 const star = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 const size = Math.random() * 5 + 2;
