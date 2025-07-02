@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fuyumatsuri</title>
+    <title>Mapa de Stands del Evento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -103,8 +103,7 @@
         .modal-nav:hover { background-color: rgba(255,255,255,0.2); }
         #modal-prev { left: -50px; }
         #modal-next { right: -50px; }
-        
-        /* Estilos para la nueva sección de información */
+
         .event-info-container {
             display: flex;
             flex-direction: column;
@@ -147,10 +146,8 @@
             fill: #E5E7EB;
         }
 
-        /* Media Query para móviles */
         @media (max-width: 640px) { 
             #app-container { padding: 1rem; justify-content: flex-start; } 
-            .logo-container:not(#main-logo-container) { display: none; } 
             .stand { font-size: 1.8vw; } 
             .stand-tooltip { font-size: 2.2vw; padding: 0.4rem 0.8rem;} 
             #modal-prev { left: 5px; } 
@@ -161,7 +158,6 @@
             .info-item { font-size: 1rem; text-align: center; }
         }
 
-        /* Estilos y animaciones del fondo */
         @keyframes float-sway {
             0%, 100% { transform: rotate(-2deg) translateY(0px); }
             50% { transform: rotate(2deg) translateY(-8px); }
