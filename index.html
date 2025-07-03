@@ -74,6 +74,9 @@
         .stand:hover .stand-tooltip, .stand.show-tooltip .stand-tooltip {
             opacity: 1; visibility: visible;
         }
+        .stand:hover, .stand.show-tooltip {
+            z-index: 20;
+        }
         .handle { position: absolute; width: 18px; height: 18px; border-radius: 50%; display: none; z-index: 51; }
         .stand.position-edit-mode .handle { display: block; }
         .resize-handle { background-color: #f59e0b; border: 2px solid white; right: -10px; bottom: -10px; cursor: se-resize; }
