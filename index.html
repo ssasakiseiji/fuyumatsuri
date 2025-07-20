@@ -56,7 +56,7 @@
         .available { background-color: rgb(34, 197, 94); }
         .occupied { background-color: rgb(107, 114, 128); }
         .stand.position-edit-mode {
-            cursor: move; border: 2px dashed #f59e0b;
+            cursor: pointer; border: 2px dashed #f59e0b;
             z-index: 50; opacity: 0.7;
         }
         .hidden-visible {
@@ -158,6 +158,27 @@
             width: 1.5rem; 
             height: 1.5rem;
             fill: currentColor;
+        }
+
+        #stands-table-container {
+            display: none; /* Oculto por defecto */
+            width: 100%;
+            max-width: 800px;
+            margin-top: 1rem;
+            background-color: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            padding: 1rem;
+        }
+        #stands-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #stands-table th, #stands-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
         }
 
         @media (max-width: 640px) { 
@@ -267,6 +288,24 @@
     <div id="app-container">
         <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
         <div id="map-card"><div id="map-container"></div></div>
+
+        <button id="toggle-stands-table" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+            Todos los Stands
+        </button>
+        <div id="stands-table-container" class="hidden">
+            <table id="stands-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titular</th>
+                        <th>Producto Principal</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="stands-table-body">
+                </tbody>
+            </table>
+        </div>
         
         <div class="logo-container flex flex-col items-center">
             <h4 class="text-gray-400 text-sm tracking-widest uppercase mb-4">Organizan</h4>
@@ -304,23 +343,24 @@
 
     <div id="info-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 hidden z-50">
         <div class="relative w-full max-w-lg">
-            <button id="modal-prev" class="modal-nav">&lt;</button>
+            <button id="modal-prev" class="modal-nav"><</button>
             <div id="modal-content" class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 w-full transform scale-95 opacity-0 overflow-y-auto max-h-[90vh]"></div>
-            <button id="modal-next" class="modal-nav">&gt;</button>
+            <button id="modal-next" class="modal-nav">></button>
         </div>
     </div>
 
     <div id="lightbox" class="modal-backdrop fixed inset-0 hidden z-50">
-        <button id="lightbox-close">&times;</button>
-        <button id="lightbox-prev" class="lightbox-nav">&lt;</button>
+        <button id="lightbox-close">×</button>
+        <button id="lightbox-prev" class="lightbox-nav"><</button>
         <img id="lightbox-image" src="" alt="Imagen ampliada">
-        <button id="lightbox-next" class="lightbox-nav">&gt;</button>
+        <button id="lightbox-next" class="lightbox-nav">></button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBQfZIQMKeM9thmGbA-w7SalkBJRyNo3xk",
@@ -335,6 +375,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
         
         const mapContainer = document.getElementById('map-container');
         const mapCard = document.getElementById('map-card');
@@ -355,6 +396,9 @@
         const lightboxImage = document.getElementById('lightbox-image');
         const lightboxPrev = document.getElementById('lightbox-prev');
         const lightboxNext = document.getElementById('lightbox-next');
+        const toggleStandsTableBtn = document.getElementById('toggle-stands-table');
+        const standsTableContainer = document.getElementById('stands-table-container');
+        const standsTableBody = document.getElementById('stands-table-body');
         
         let isAdmin = false, isPositionEditMode = false, isInfoEditMode = false, showHidden = false;
         let standsData = new Map();
@@ -362,6 +406,7 @@
         let longPressTimer;
         let sortedStands = [];
         let activeModalStandId = null; 
+        let selectedStandToMove = null;
 
         async function updateFirestoreDoc(docId, data) {
             await setDoc(doc(db, "fuyumatsuri-stands", docId), data, { merge: true });
@@ -440,6 +485,8 @@
             let wasLongPress = false;
             el.addEventListener('click', (e) => {
                 if (wasLongPress) { e.preventDefault(); return; }
+                if (isPositionEditMode) return; // Evitar abrir modal si estamos en modo de edición de posición
+
                 const standIndex = sortedStands.findIndex(s => s.id === stand.id);
                 if (standIndex === -1) return;
                 (isAdmin && isInfoEditMode) ? buildAdminModal(standIndex) : buildVisitorModal(standIndex);
@@ -473,22 +520,21 @@
         
         function makeEditable(element, dataObject) {
             element.style.pointerEvents = 'auto'; 
-            element.onmousedown = e => {
-                if (e.target.classList.contains('handle')) return;
-                e.preventDefault();
-                const mapRect = mapContainer.getBoundingClientRect();
-                const onMouseMove = e_move => {
-                    element.style.left = `${(e_move.clientX - mapRect.left) / mapRect.width * 100}%`;
-                    element.style.top = `${(e_move.clientY - mapRect.top) / mapRect.height * 100}%`;
-                };
-                const onMouseUp = e_up => {
-                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
-                    const newLeft = (e_up.clientX - mapRect.left) / mapRect.width * 100;
-                    const newTop = (e_up.clientY - mapRect.top) / mapRect.height * 100;
-                    updateFirestoreDoc(dataObject.id, { top: newTop, left: newLeft });
-                };
-                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+            
+            element.onclick = e => {
+                e.stopPropagation();
+                if (selectedStandToMove === dataObject.id) {
+                    selectedStandToMove = null;
+                    mapContainer.style.cursor = 'default';
+                    element.style.border = '2px dashed #f59e0b';
+                } else {
+                    document.querySelectorAll('.stand.position-edit-mode').forEach(el => el.style.border = '2px dashed #f59e0b');
+                    selectedStandToMove = dataObject.id;
+                    mapContainer.style.cursor = 'crosshair';
+                    element.style.border = '3px solid #10b981';
+                }
             };
+            
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'handle resize-handle';
             element.appendChild(resizeHandle);
@@ -508,6 +554,7 @@
                 };
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             };
+
             const rotateHandle = document.createElement('div');
             rotateHandle.className = 'handle rotate-handle';
             element.appendChild(rotateHandle);
@@ -526,6 +573,21 @@
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             };
         }
+
+        mapContainer.addEventListener('click', e => {
+            if (isPositionEditMode && selectedStandToMove) {
+                const mapRect = mapContainer.getBoundingClientRect();
+                const newLeft = (e.clientX - mapRect.left) / mapRect.width * 100;
+                const newTop = (e.clientY - mapRect.top) / mapRect.height * 100;
+
+                updateFirestoreDoc(selectedStandToMove, { top: newTop, left: newLeft });
+
+                const standElement = mapContainer.querySelector(`.stand[data-id='${selectedStandToMove}']`);
+                if(standElement) standElement.style.border = '2px dashed #f59e0b';
+                selectedStandToMove = null;
+                mapContainer.style.cursor = 'default';
+            }
+        });
         
         function showModal(standId) { 
             activeModalStandId = standId;
@@ -541,13 +603,13 @@
         function buildVisitorModal(standIndex) {
             const stand = sortedStands[standIndex];
             if (!stand) return;
-            const galleryContent = stand.gallery && stand.gallery.length > 0 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>` : '';
+            const galleryContent = stand.gallery && stand.gallery.length > 0 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2">Galería:</h4><div class="gallery-grid gallery-count-${stand.gallery.length}">${stand.gallery.map((img, i) => `<div class="gallery-item"><img src="${img.url}" data-index="${i}" alt="Imagen de galería ${i + 1}"></div>`).join('')}</div></div>` : '';
             const productSubtitle = stand.mainProduct ? `<p class="text-lg text-yellow-400 -mt-2 mb-3">${stand.mainProduct}</p>` : '';
             const availableTitle = `<h3 class="text-2xl font-bold text-green-400">Stand Disponible</h3>`;
             const infoSection = `<div class="min-h-[100px]"><h3 class="text-2xl font-bold text-blue-400">${stand.owner||"Expositor"}</h3>${productSubtitle}<p class="text-gray-300 mt-2 whitespace-pre-wrap">${stand.info||"No hay información."}</p></div>`;
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">×</button></div>${stand.status==='available'?`<div class="bg-gray-800 p-4 rounded-lg min-h-[150px]">${availableTitle}<p class="text-gray-300 mt-2">Asegura tu lugar en Fuyumatsuri. Completa nuestro formulario de inscripción para reservar este espacio.</p><a href="https://docs.google.com/forms/d/e/1FAIpQLSc-2Ntyup0p6-3NKENTnGaYR9nat--68nfWUEZvzFleykwXkg/viewform?usp=header" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all">¡Quiero reservar!</a></div>`:`${infoSection}${galleryContent}`}`;
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
-            modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery, parseInt(img.dataset.index)));
+            modalContent.querySelectorAll('.gallery-item img').forEach(img => img.onclick = () => openLightbox(stand.gallery.map(g => g.url), parseInt(img.dataset.index)));
             modalPrevBtn.onclick = () => { buildVisitorModal((standIndex - 1 + sortedStands.length) % sortedStands.length); };
             modalNextBtn.onclick = () => { buildVisitorModal((standIndex + 1) % sortedStands.length); };
             showModal(stand.id);
@@ -557,22 +619,50 @@
             const currentId = sortedStands[standIndex].id;
             const stand = standsData.get(currentId);
             if (!stand) return;
-            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">×</button></div>`).join('') : '';
+            const galleryHTML = stand.gallery ? stand.gallery.map((img, index) => `<div class="relative"><img src="${img.url}" class="w-24 h-24 object-cover rounded-md"><button data-index="${index}" class="delete-img-btn">×</button></div>`).join('') : '';
             modalContent.innerHTML = `<div class="flex justify-between items-start"><h2 class="text-3xl font-bold text-white mb-4">Editar Stand ${stand.displayId||stand.id}</h2><button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl">×</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Estado</label><select id="stand-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"><option value="available" ${stand.status==='available'?'selected':''}>Disponible</option><option value="occupied" ${stand.status==='occupied'?'selected':''}>Ocupado</option><option value="hidden" ${stand.status==='hidden'?'selected':''}>Oculto</option></select></div><div><label for="stand-owner" class="block text-sm font-medium text-gray-400 mb-1">Titular</label><input type="text" id="stand-owner" value="${stand.owner||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-product" class="block text-sm font-medium text-gray-400 mb-1">Producto Principal (para tooltip)</label><input type="text" id="stand-product" value="${stand.mainProduct||''}" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2"></div><div><label for="stand-info" class="block text-sm font-medium text-gray-400 mb-1">Información Adicional</label><textarea id="stand-info" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2">${stand.info||''}</textarea></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Galería</label><div id="gallery-preview" class="flex flex-wrap gap-4 mb-2 p-2 bg-gray-800 rounded-lg min-h-[110px]">${galleryHTML}</div><label for="add-image" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">+ Agregar Imagen</label><input type="file" id="add-image" class="hidden" accept="image/*"></div><button id="save-stand-changes" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all">Guardar Cambios</button></div>`;
             
             document.getElementById('save-stand-changes').onclick = () => {
                 const updatedData = { status: document.getElementById('stand-status').value, owner: document.getElementById('stand-owner').value, mainProduct: document.getElementById('stand-product').value, info: document.getElementById('stand-info').value, };
                 updateFirestoreDoc(stand.id, updatedData).then(hideModal);
             };
-            document.getElementById('add-image').onchange = e => {
-                if (e.target.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = re => { updateFirestoreDoc(stand.id, { gallery: [...(stand.gallery || []), re.target.result] }); };
-                    reader.readAsDataURL(e.target.files[0]);
+            
+            document.getElementById('add-image').onchange = async e => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const filePath = `gallery/${stand.id}/${Date.now()}-${file.name}`;
+                const storageRef = ref(storage, filePath);
+                
+                try {
+                    await uploadBytes(storageRef, file);
+                    const url = await getDownloadURL(storageRef);
+                    const newImage = { url, path: filePath };
+                    const updatedGallery = [...(stand.gallery || []), newImage];
+                    await updateFirestoreDoc(stand.id, { gallery: updatedGallery });
+                } catch (error) {
+                    console.error("Error al subir imagen:", error);
+                    alert("Error al subir imagen.");
                 }
             };
+            
             modalContent.querySelectorAll('.delete-img-btn').forEach(btn => {
-                btn.onclick = () => { updateFirestoreDoc(stand.id, { gallery: stand.gallery.filter((_, i) => i !== parseInt(btn.dataset.index)) }); };
+                btn.onclick = async () => {
+                    const index = parseInt(btn.dataset.index);
+                    const imageToDelete = stand.gallery[index];
+                    if (!imageToDelete) return;
+
+                    const storageRef = ref(storage, imageToDelete.path);
+                    
+                    try {
+                        await deleteObject(storageRef);
+                    } catch(error) {
+                         console.error("Error al borrar la imagen de Storage:", error);
+                    } finally {
+                        const updatedGallery = stand.gallery.filter((_, i) => i !== index);
+                        await updateFirestoreDoc(stand.id, { gallery: updatedGallery });
+                    }
+                };
             });
             modalContent.querySelector('#close-modal-btn').onclick = hideModal;
             modalPrevBtn.onclick = () => { buildAdminModal((standIndex - 1 + sortedStands.length) % sortedStands.length); };
@@ -583,20 +673,48 @@
         function openLightbox(images, index) { currentLightboxImages = images; currentLightboxIndex = index; lightbox.classList.remove('hidden'); updateLightboxImage(); }
         function updateLightboxImage() { lightboxImage.src = currentLightboxImages[currentLightboxIndex]; }
         function changeLightboxImage(direction) { currentLightboxIndex = (currentLightboxIndex + direction + currentLightboxImages.length) % currentLightboxImages.length; updateLightboxImage(); }
+        
         function togglePositionMode() {
             isPositionEditMode = !isPositionEditMode;
             positionModeToggle.classList.toggle('bg-blue-600', isPositionEditMode); positionModeToggle.classList.toggle('bg-gray-600', !isPositionEditMode);
             showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
-            if (!isPositionEditMode) { showHiddenToggle.checked = false; showHidden = false; }
+            if (!isPositionEditMode) { 
+                showHiddenToggle.checked = false; 
+                showHidden = false;
+                selectedStandToMove = null;
+                mapContainer.style.cursor = 'default';
+            }
             mapCard.classList.toggle('position-edit-mode', isPositionEditMode);
             Array.from(standsData.values()).forEach(updateStandOnMap);
         }
+
         function toggleInfoMode() {
             isInfoEditMode = !isInfoEditMode;
             infoModeToggle.classList.toggle('bg-blue-600', isInfoEditMode); infoModeToggle.classList.toggle('bg-gray-600', !isInfoEditMode);
             showHiddenContainer.classList.toggle('hidden', !isPositionEditMode && !isInfoEditMode);
             if (!isInfoEditMode) { showHiddenToggle.checked = false; showHidden = false; }
             Array.from(standsData.values()).forEach(updateStandOnMap);
+        }
+
+        function toggleStandsTable() {
+            const isHidden = standsTableContainer.classList.toggle('hidden');
+            if (!isHidden) {
+                renderStandsTable();
+            }
+        }
+
+        function renderStandsTable() {
+            standsTableBody.innerHTML = '';
+            sortedStands.forEach(stand => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${stand.displayId || stand.id}</td>
+                    <td>${stand.owner || 'N/A'}</td>
+                    <td>${stand.mainProduct || 'N/A'}</td>
+                    <td>${stand.status}</td>
+                `;
+                standsTableBody.appendChild(row);
+            });
         }
 
         async function main() {
@@ -616,10 +734,14 @@
                     const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden) ? Array.from(standsData.values()) : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
                     sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
 
+                    if (standsTableContainer.style.display !== 'none') {
+                        renderStandsTable();
+                    }
+
                     if (activeModalStandId && !infoModal.classList.contains('hidden')) {
                         const currentStandIndex = sortedStands.findIndex(s => s.id === activeModalStandId);
                         if (currentStandIndex !== -1) {
-                            if (document.getElementById('save-stand-changes')) { buildAdminModal(currentStandIndex); }
+                            if (isAdmin && isInfoEditMode) { buildAdminModal(currentStandIndex); }
                              else { buildVisitorModal(currentStandIndex); }
                         } else { hideModal(); }
                     }
@@ -629,6 +751,7 @@
 
         positionModeToggle.addEventListener('click', togglePositionMode);
         infoModeToggle.addEventListener('click', toggleInfoMode);
+        toggleStandsTableBtn.addEventListener('click', toggleStandsTable);
         showHiddenToggle.addEventListener('change', () => { showHidden = showHiddenToggle.checked; Array.from(standsData.values()).forEach(updateStandOnMap); });
         applyGlobalSizeBtn.addEventListener('click', applyGlobalSize);
         resetRotationsBtn.addEventListener('click', resetAllRotations);
