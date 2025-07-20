@@ -159,9 +159,9 @@
             height: 1.5rem;
             fill: currentColor;
         }
-
+        
+        /* -- REGLA CSS CORREGIDA -- */
         #stands-table-container {
-            display: none; /* Oculto por defecto */
             width: 100%;
             max-width: 800px;
             margin-top: 1rem;
@@ -289,7 +289,7 @@
         <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
         <div id="map-card"><div id="map-container"></div></div>
 
-        <button id="toggle-stands-table" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+        <button id="toggle-stands-table" class="mt-4 bg-indigo-800 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
             Todos los Stands
         </button>
         <div id="stands-table-container" class="hidden">
@@ -485,7 +485,7 @@
             let wasLongPress = false;
             el.addEventListener('click', (e) => {
                 if (wasLongPress) { e.preventDefault(); return; }
-                if (isPositionEditMode) return; // Evitar abrir modal si estamos en modo de edición de posición
+                if (isPositionEditMode) return;
 
                 const standIndex = sortedStands.findIndex(s => s.id === stand.id);
                 if (standIndex === -1) return;
@@ -697,9 +697,12 @@
         }
 
         function toggleStandsTable() {
-            const isHidden = standsTableContainer.classList.toggle('hidden');
-            if (!isHidden) {
-                renderStandsTable();
+            const isCurrentlyHidden = standsTableContainer.classList.contains('hidden');
+            if (isCurrentlyHidden) {
+                renderStandsTable(); // Llenar la tabla antes de mostrarla
+                standsTableContainer.classList.remove('hidden');
+            } else {
+                standsTableContainer.classList.add('hidden');
             }
         }
 
@@ -734,7 +737,8 @@
                     const standsToRender = (isAdmin && (isPositionEditMode || isInfoEditMode) && showHidden) ? Array.from(standsData.values()) : Array.from(standsData.values()).filter(s => s.status !== 'hidden');
                     sortedStands = standsToRender.sort((a,b) => parseInt(a.id) - parseInt(b.id));
 
-                    if (standsTableContainer.style.display !== 'none') {
+                    // Si la tabla está visible, actualizarla con los nuevos datos
+                    if (!standsTableContainer.classList.contains('hidden')) {
                         renderStandsTable();
                     }
 
