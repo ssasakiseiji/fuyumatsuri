@@ -160,7 +160,6 @@
             fill: currentColor;
         }
         
-        /* -- REGLA CSS CORREGIDA -- */
         #stands-table-container {
             width: 100%;
             max-width: 800px;
@@ -289,17 +288,16 @@
         <div id="main-logo-container" class="logo-container"><img src="./sources/fuyu.png" alt="Logo del Evento"></div>
         <div id="map-card"><div id="map-container"></div></div>
 
-        <button id="toggle-stands-table" class="mt-4 bg-indigo-800 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+        <button id="toggle-stands-table" class="mt-4 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-all">
             Todos los Stands
         </button>
         <div id="stands-table-container" class="hidden">
             <table id="stands-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>N°</th>
                         <th>Titular</th>
                         <th>Producto Principal</th>
-                        <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody id="stands-table-body">
@@ -705,16 +703,18 @@
                 standsTableContainer.classList.add('hidden');
             }
         }
-
+        
+        // FUNCIÓN MODIFICADA
         function renderStandsTable() {
             standsTableBody.innerHTML = '';
             sortedStands.forEach(stand => {
                 const row = document.createElement('tr');
+                const ownerText = stand.owner || '';
+                const productText = stand.mainProduct || '';
                 row.innerHTML = `
                     <td>${stand.displayId || stand.id}</td>
-                    <td>${stand.owner || 'N/A'}</td>
-                    <td>${stand.mainProduct || 'N/A'}</td>
-                    <td>${stand.status}</td>
+                    <td>${ownerText}</td>
+                    <td>${productText}</td>
                 `;
                 standsTableBody.appendChild(row);
             });
